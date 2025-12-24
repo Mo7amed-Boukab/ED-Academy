@@ -1,0 +1,66 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model users {
+  id         String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  full_name  String    @db.VarChar(100)
+  email      String    @unique @db.VarChar(150)
+  password   String
+  role       String    @db.VarChar(20)
+  created_at DateTime? @default(now()) @db.Timestamp(6)
+  sessions   sessions[]
+}
+
+model classes {
+  id         String     @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name       String     @db.VarChar(50)
+  created_at DateTime?  @default(now()) @db.Timestamp(6)
+  sessions   sessions[]
+  students   students[]
+}
+
+model students {
+  id          String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  full_name   String        @db.VarChar(100)
+  class_id    String        @db.Uuid
+  created_at  DateTime?     @default(now()) @db.Timestamp(6)
+  attendances attendances[]
+  classes     classes       @relation(fields: [class_id], references: [id], onDelete: Cascade, map: "fk_student_class")
+}
+
+model subjects {
+  id       String     @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name     String     @db.VarChar(100)
+  sessions sessions[]
+}
+
+model sessions {
+  id           String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  session_date DateTime      @db.Date
+  start_time   DateTime      @db.Time(6)
+  end_time     DateTime      @db.Time(6)
+  class_id     String        @db.Uuid
+  subject_id   String        @db.Uuid
+  teacher_id   String        @db.Uuid
+  attendances  attendances[]
+  classes      classes       @relation(fields: [class_id], references: [id], map: "fk_session_class")
+  subjects     subjects      @relation(fields: [subject_id], references: [id], map: "fk_session_subject")
+  users        users         @relation(fields: [teacher_id], references: [id], map: "fk_session_teacher")
+}
+
+model attendances {
+  id         String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  student_id String   @db.Uuid
+  session_id String   @db.Uuid
+  status     String   @db.VarChar(20)
+  sessions   sessions @relation(fields: [session_id], references: [id], onDelete: Cascade, map: "fk_attendance_session")
+  students   students @relation(fields: [student_id], references: [id], onDelete: Cascade, map: "fk_attendance_student")
+
+  @@unique([student_id, session_id], map: "unique_attendance")
+}
