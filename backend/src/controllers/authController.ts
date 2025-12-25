@@ -19,11 +19,11 @@ export class AuthController {
 
   static async register(req: Request, res: Response, next: NextFunction) {
     try {
-      const { full_name, email, password, role }: RegisterDto = req.body;
-      if (!full_name || !email || !password || !role) {
+      const { fullName, email, password, role }: RegisterDto = req.body;
+      if (!fullName || !email || !password || !role) {
         throw ApiError.badRequest('All fields are required');
       }
-      const user = await register({ full_name, email, password, role });
+      const user = await register({ fullName, email, password, role });
       res.json(user);
     } catch (err: any) {
       next(err instanceof ApiError ? err : ApiError.badRequest(err.message));

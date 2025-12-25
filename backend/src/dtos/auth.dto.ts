@@ -1,7 +1,7 @@
 import type { Role } from '../types/user';
 
 export interface RegisterDto {
-  full_name: string;
+  fullName: string;
   email: string;
   password: string;
   role: Role;
