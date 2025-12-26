@@ -6,6 +6,8 @@ import morgan from 'morgan';
 import authRouter from './routes/auth';
 import classRouter from './routes/classes';
 import userRouter from './routes/users';
+import subjectRouter from './routes/subjects';
+import sessionRouter from './routes/sessions';
 import { errorHandler } from './middlewares/errorHandlerMiddleware';
 import { notFound } from './middlewares/notFoundMiddleware';
 import logger from './utils/logger';
@@ -32,6 +34,8 @@ app.use(morgan('dev'));
 app.use('/api/auth', authRouter);
 app.use('/api/classes', classRouter);
 app.use('/api/users', userRouter);
+app.use('/api/subjects', subjectRouter);
+app.use('/api/sessions', sessionRouter);
 
 app.use(notFound);
 app.use(errorHandler);
