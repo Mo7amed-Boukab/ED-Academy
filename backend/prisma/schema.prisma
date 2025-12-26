@@ -81,11 +81,11 @@ model Subject {
   id   String @id @default(uuid()) @db.Uuid
   name String
 
-  classId String @db.Uuid
-  class   Class  @relation(fields: [classId], references: [id])
+  classId String? @db.Uuid
+  class   Class?  @relation(fields: [classId], references: [id])
 
-  teacherId String @db.Uuid
-  teacher   User   @relation(fields: [teacherId], references: [id])
+  teacherId String? @db.Uuid
+  teacher   User?   @relation(fields: [teacherId], references: [id])
 
   sessions Session[]
 }
