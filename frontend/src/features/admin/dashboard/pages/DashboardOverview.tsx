@@ -1,31 +1,56 @@
+import { useState, useEffect } from 'react';
 import { Users, GraduationCap, Clock } from "lucide-react";
 import { StatCard } from "../../../../components/StatCard";
 import { Header } from "../../../../components/Header";
+import { statsApi } from "../../services/stats.api";
 
 export const AdminOverview = () => {
-    const stats = [
+    const [stats, setStats] = useState({
+        totalStudents: 0,
+        totalTeachers: 0,
+        totalClasses: 0,
+        totalSessions: 0
+    });
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        const fetchStats = async () => {
+            try {
+                const data = await statsApi.getGlobal();
+                setStats(data);
+            } catch (error) {
+                console.error("Failed to fetch stats", error);
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        fetchStats();
+    }, []);
+
+    const statCards = [
         {
-            title: "Tout Students",
-            value: "50",
-            trendLabel: "Dans l'école",
+            title: "Total Étudiants",
+            value: loading ? "..." : stats.totalStudents.toString(),
+            trendLabel: "Inscrits",
             icon: Users,
         },
         {
-            title: "Tout Teachers",
-            value: "10",
+            title: "Total Enseignants",
+            value: loading ? "..." : stats.totalTeachers.toString(),
             trendLabel: "Actifs",
             icon: Users,
         },
         {
             title: "Classes",
-            value: "5",
-            trendLabel: "En cours",
+            value: loading ? "..." : stats.totalClasses.toString(),
+            trendLabel: "Ouvertes",
             icon: GraduationCap,
         },
         {
-            title: "Sessions Aujourd'hui",
-            value: "12",
-            trendLabel: "Planifiées",
+            title: "Sessions",
+            value: loading ? "..." : stats.totalSessions.toString(),
+            trendLabel: "Total enregistré",
             icon: Clock,
         },
     ];
@@ -47,7 +72,7 @@ export const AdminOverview = () => {
             <div className="px-4 sm:px-6 pb-6 space-y-6 mt-4 sm:mt-6">
                 {/* Stats Grid */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
-                    {stats.map((stat, index) => (
+                    {statCards.map((stat, index) => (
                         <StatCard key={index} {...stat} />
                     ))}
                 </div>
