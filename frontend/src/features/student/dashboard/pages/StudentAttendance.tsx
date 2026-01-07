@@ -1,12 +1,394 @@
-import { Header } from "../../../../components/Header";
+import { useState } from "react";
+import { Check, X, Clock, Search, Calendar, FileText } from "lucide-react";
+import { CustomSelect } from "../../../../components/CustomSelect";
+
+// Mock Data - Student's attendance history
+const MOCK_ATTENDANCE = [
+  {
+    id: 1,
+    date: "2026-01-05",
+    time: "08:00 – 10:00",
+    subject: "Mathématiques",
+    teacher: "M. Dupont",
+    room: "Salle 204",
+    status: "PRESENT",
+    justified: null,
+  },
+  {
+    id: 2,
+    date: "2026-01-05",
+    time: "10:15 – 12:00",
+    subject: "Physique-Chimie",
+    teacher: "Mme. Curie",
+    room: "Lab 2",
+    status: "PRESENT",
+    justified: null,
+  },
+  {
+    id: 3,
+    date: "2026-01-04",
+    time: "08:00 – 10:00",
+    subject: "Histoire-Géo",
+    teacher: "M. Bloch",
+    room: "Salle 305",
+    status: "ABSENT",
+    justified: true,
+  },
+  {
+    id: 4,
+    date: "2026-01-04",
+    time: "14:00 – 15:30",
+    subject: "Anglais",
+    teacher: "Mrs. Smith",
+    room: "Salle 102",
+    status: "LATE",
+    justified: null,
+  },
+  {
+    id: 5,
+    date: "2026-01-03",
+    time: "08:00 – 10:00",
+    subject: "Philosophie",
+    teacher: "M. Sartre",
+    room: "Salle 101",
+    status: "PRESENT",
+    justified: null,
+  },
+  {
+    id: 6,
+    date: "2026-01-03",
+    time: "10:15 – 12:00",
+    subject: "Mathématiques",
+    teacher: "M. Dupont",
+    room: "Salle 204",
+    status: "ABSENT",
+    justified: false,
+  },
+  {
+    id: 7,
+    date: "2026-01-02",
+    time: "14:00 – 16:00",
+    subject: "Informatique",
+    teacher: "M. Turing",
+    room: "Salle Info",
+    status: "PRESENT",
+    justified: null,
+  },
+  {
+    id: 8,
+    date: "2026-01-02",
+    time: "08:00 – 10:00",
+    subject: "Physique-Chimie",
+    teacher: "Mme. Curie",
+    room: "Lab 2",
+    status: "LATE",
+    justified: null,
+  },
+];
+
+// Extract unique values for filters
+const SUBJECTS = [...new Set(MOCK_ATTENDANCE.map((a) => a.subject))];
+const STATUSES = ["All", "PRESENT", "ABSENT", "LATE"];
 
 export const StudentAttendance = () => {
+  const [searchQuery, setSearchQuery] = useState("");
+  const [subjectFilter, setSubjectFilter] = useState("");
+  const [statusFilter, setStatusFilter] = useState("");
+  const [dateFilter, setDateFilter] = useState("");
+
+  // Filter attendance records
+  const filteredRecords = MOCK_ATTENDANCE.filter((record) => {
+    if (
+      searchQuery &&
+      !record.subject.toLowerCase().includes(searchQuery.toLowerCase()) &&
+      !record.teacher.toLowerCase().includes(searchQuery.toLowerCase())
+    )
+      return false;
+    if (subjectFilter && record.subject !== subjectFilter) return false;
+    if (
+      statusFilter &&
+      statusFilter !== "All" &&
+      record.status !== statusFilter
+    )
+      return false;
+    if (dateFilter && record.date !== dateFilter) return false;
+    return true;
+  });
+
+  // Group by date
+  const groupedByDate = filteredRecords.reduce((acc, record) => {
+    if (!acc[record.date]) {
+      acc[record.date] = [];
+    }
+    acc[record.date].push(record);
+    return acc;
+  }, {} as Record<string, typeof MOCK_ATTENDANCE>);
+
+  // Count totals
+  const totalPresent = filteredRecords.filter(
+    (r) => r.status === "PRESENT"
+  ).length;
+  const totalAbsent = filteredRecords.filter(
+    (r) => r.status === "ABSENT"
+  ).length;
+  const totalLate = filteredRecords.filter((r) => r.status === "LATE").length;
+  const justifiedCount = filteredRecords.filter(
+    (r) => r.justified === true
+  ).length;
+  const unjustifiedCount = filteredRecords.filter(
+    (r) => r.justified === false
+  ).length;
+
+  // Format date
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString);
+    return date.toLocaleDateString("en-US", {
+      weekday: "long",
+      day: "numeric",
+      month: "long",
+      year: "numeric",
+    });
+  };
+
   return (
-    <div className="space-y-6">
-      <Header
-        title="Attendance History"
-        description="Historique de vos présences"
-      />
+    <div className="animate-fadeIn">
+      <div className="page-container">
+        {/* Stats Summary */}
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+          <div className="card bg-white">
+            <div className="card-body p-8">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-xs font-medium uppercase tracking-wide text-[var(--text-muted)] mb-2">
+                    Present
+                  </p>
+                  <p className="text-2xl font-bold text-[var(--text-primary)]">
+                    {totalPresent}
+                  </p>
+                </div>
+                <div className="w-10 h-10 rounded flex items-center justify-center bg-[var(--success)]/10">
+                  <Check size={20} className="text-[var(--success)]" />
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="card bg-white">
+            <div className="card-body p-8">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-xs font-medium uppercase tracking-wide text-[var(--text-muted)] mb-2">
+                    Absent
+                  </p>
+                  <p className="text-2xl font-bold text-[var(--text-primary)]">
+                    {totalAbsent}
+                  </p>
+                </div>
+                <div className="w-10 h-10 rounded flex items-center justify-center bg-[var(--danger)]/10">
+                  <X size={20} className="text-[var(--danger)]" />
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="card bg-white">
+            <div className="card-body p-8">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-xs font-medium uppercase tracking-wide text-[var(--text-muted)] mb-2">
+                    Late
+                  </p>
+                  <p className="text-2xl font-bold text-[var(--text-primary)]">
+                    {totalLate}
+                  </p>
+                </div>
+                <div className="w-10 h-10 rounded flex items-center justify-center bg-[var(--warning)]/10">
+                  <Clock size={20} className="text-[var(--warning)]" />
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="card bg-white">
+            <div className="card-body p-8">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-xs font-medium uppercase tracking-wide text-[var(--text-muted)] mb-2">
+                    Justified
+                  </p>
+                  <p className="text-2xl font-bold text-[var(--text-primary)]">
+                    {justifiedCount}/{justifiedCount + unjustifiedCount}
+                  </p>
+                </div>
+                <div className="w-10 h-10 rounded flex items-center justify-center bg-[var(--primary)]/10">
+                  <FileText size={20} className="text-[var(--primary)]" />
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Filters Bar */}
+        <div className="filters-bar">
+          <div className="filters-bar-left">
+            {/* Search */}
+            <div className="search-input-wrapper w-full-mobile">
+              <Search size={16} className="text-[var(--text-muted)] shrink-0" />
+              <input
+                type="text"
+                placeholder="Search subject or teacher..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+              />
+            </div>
+
+            {/* Date Filter */}
+            <div className="search-input-wrapper w-full-mobile">
+              <Calendar
+                size={16}
+                className="text-[var(--text-muted)] shrink-0"
+              />
+              <input
+                type="date"
+                value={dateFilter}
+                onChange={(e) => setDateFilter(e.target.value)}
+                className="bg-transparent border-none outline-none text-sm text-[var(--text-primary)] flex-1"
+              />
+            </div>
+
+            {/* Subject Filter */}
+            <div className="w-full-mobile hide-mobile">
+              <CustomSelect
+                value={subjectFilter}
+                onChange={setSubjectFilter}
+                options={[
+                  { value: "", label: "All Subjects" },
+                  ...SUBJECTS.map((s) => ({ value: s, label: s })),
+                ]}
+                placeholder="All Subjects"
+              />
+            </div>
+
+            {/* Status Filter */}
+            <div className="w-full-mobile">
+              <CustomSelect
+                value={statusFilter}
+                onChange={setStatusFilter}
+                options={STATUSES.map((s) => ({
+                  value: s === "All" ? "" : s,
+                  label: s,
+                }))}
+                placeholder="All Statuses"
+              />
+            </div>
+          </div>
+        </div>
+
+        {/* Attendance Table */}
+        <div className="card bg-white">
+          <div className="table-responsive-wrapper">
+            <table className="data-table">
+              <thead>
+                <tr>
+                  <th className="w-[180px]">Date</th>
+                  <th className="w-[130px]">Time</th>
+                  <th>Subject</th>
+                  <th>Teacher</th>
+                  <th>Room</th>
+                  <th className="text-center w-[150px]">Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                {Object.keys(groupedByDate).length === 0 ? (
+                  <tr>
+                    <td
+                      colSpan={6}
+                      className="text-center py-8 text-[var(--text-muted)]"
+                    >
+                      No attendance records found
+                    </td>
+                  </tr>
+                ) : (
+                  Object.entries(groupedByDate).map(([date, records]) =>
+                    records.map((record, recordIndex) => (
+                      <tr key={record.id}>
+                        {/* Date - Only show for first record of each date */}
+                        {recordIndex === 0 ? (
+                          <td
+                            rowSpan={records.length}
+                            className="font-medium text-[var(--text-primary)] bg-[var(--bg-light)] align-top"
+                          >
+                            {formatDate(date)}
+                          </td>
+                        ) : null}
+
+                        {/* Time */}
+                        <td className="text-[var(--text-secondary)]">
+                          {record.time}
+                        </td>
+
+                        {/* Subject */}
+                        <td>
+                          <span className="font-medium text-[var(--text-primary)]">
+                            {record.subject}
+                          </span>
+                        </td>
+
+                        {/* Teacher */}
+                        <td className="text-[var(--text-secondary)]">
+                          {record.teacher}
+                        </td>
+
+                        {/* Room */}
+                        <td>
+                          <span className="px-2 py-1 bg-[var(--bg-main)] text-[var(--text-secondary)] text-xs font-medium">
+                            {record.room}
+                          </span>
+                        </td>
+
+                        {/* Status */}
+                        <td className="text-center">
+                          <div className="flex flex-col items-center gap-1">
+                            <span
+                              className={`status-badge ${
+                                record.status === "PRESENT"
+                                  ? "success"
+                                  : record.status === "ABSENT"
+                                  ? "danger"
+                                  : "warning"
+                              }`}
+                            >
+                              {record.status === "PRESENT" && (
+                                <Check size={12} />
+                              )}
+                              {record.status === "ABSENT" && <X size={12} />}
+                              {record.status === "LATE" && <Clock size={12} />}
+                              {record.status}
+                            </span>
+                            {record.justified !== null && (
+                              <span
+                                className={`text-xs ${
+                                  record.justified
+                                    ? "text-[var(--success)]"
+                                    : "text-[var(--danger)]"
+                                }`}
+                              >
+                                {record.justified
+                                  ? "(Justified)"
+                                  : "(Unjustified)"}
+                              </span>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    ))
+                  )
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
     </div>
   );
 };

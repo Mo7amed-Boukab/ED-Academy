@@ -5,10 +5,9 @@ import { CustomSelect } from "../../../../components/CustomSelect";
 interface SubjectModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSave: (subjectData: any) => void;
+  onSave: (data: any) => void;
   subject?: any;
-  availableClasses?: { id: string; name: string }[];
-  availableTeachers?: { id: string; fullName: string }[];
+  availableClasses: { id: string; name: string }[];
 }
 
 export const SubjectModal = ({
@@ -16,27 +15,23 @@ export const SubjectModal = ({
   onClose,
   onSave,
   subject,
-  availableClasses = [],
-  availableTeachers = [],
+  availableClasses,
 }: SubjectModalProps) => {
   const [formData, setFormData] = useState({
     name: "",
     classId: "",
-    teacherId: "",
   });
 
   useEffect(() => {
     if (subject) {
       setFormData({
-        name: subject.name,
+        name: subject.name || "",
         classId: subject.class?.id || "",
-        teacherId: subject.teacher?.id || "",
       });
     } else {
       setFormData({
         name: "",
         classId: "",
-        teacherId: "",
       });
     }
   }, [subject, isOpen]);
@@ -46,11 +41,12 @@ export const SubjectModal = ({
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     onSave(formData);
+    onClose();
   };
 
   return (
     <div className="modal-overlay">
-      <div className="modal">
+      <div className="modal" style={{ maxWidth: "480px" }}>
         <div className="modal-header">
           <h3 className="modal-title">
             {subject ? "Edit Subject" : "Add New Subject"}
@@ -86,19 +82,6 @@ export const SubjectModal = ({
                   label: c.name,
                 }))}
                 placeholder="Select a class..."
-              />
-            </div>
-
-            <div className="form-group">
-              <CustomSelect
-                label="Teacher"
-                value={formData.teacherId}
-                onChange={(val) => setFormData({ ...formData, teacherId: val })}
-                options={availableTeachers.map((t) => ({
-                  value: t.id,
-                  label: t.fullName,
-                }))}
-                placeholder="Select a teacher..."
               />
             </div>
           </div>

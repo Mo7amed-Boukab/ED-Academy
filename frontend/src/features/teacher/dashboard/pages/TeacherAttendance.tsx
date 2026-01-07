@@ -16,25 +16,23 @@ interface Session {
   subject: string;
   class: string;
   level: string;
-  teacher: string;
   students: Student[];
 }
 
-// Mock Data - Sessions with attendance records
+// Mock Data - Sessions with attendance records (Teacher's sessions only)
 const MOCK_SESSIONS: Session[] = [
   {
     id: 1,
-    time: "09:00 – 10:30",
-    subject: "Mathematics",
-    class: "BHM-2",
-    level: "A1",
-    teacher: "Dr. Sarah Johnson",
+    time: "08:00 – 10:00",
+    subject: "Mathématiques",
+    class: "Terminale S1",
+    level: "Terminal",
     students: [
-      { id: 1, name: "Sujan Maharjan", status: "PRESENT", justification: null },
-      { id: 2, name: "Asha Tamang", status: "PRESENT", justification: null },
+      { id: 1, name: "Alice Martin", status: "PRESENT", justification: null },
+      { id: 2, name: "Bob Colin", status: "PRESENT", justification: null },
       {
         id: 3,
-        name: "Rakesh Shrestha",
+        name: "Charlie Durand",
         status: "ABSENT",
         justification: "not_justified",
       },
@@ -42,79 +40,48 @@ const MOCK_SESSIONS: Session[] = [
   },
   {
     id: 2,
-    time: "10:45 – 12:30",
-    subject: "Physics",
-    class: "BHM-2",
-    level: "A1",
-    teacher: "Prof. Michael Chen",
+    time: "10:15 – 12:00",
+    subject: "Mathématiques",
+    class: "1ère S2",
+    level: "1ère",
     students: [
-      {
-        id: 4,
-        name: "Priya Gurung",
-        status: "LATE",
-        justification: "justified",
-      },
-      { id: 5, name: "Bikash Thapa", status: "PRESENT", justification: null },
-      { id: 6, name: "Sunita Rai", status: "PRESENT", justification: null },
+      { id: 4, name: "Diane Lo", status: "LATE", justification: "justified" },
+      { id: 5, name: "Eve Peron", status: "PRESENT", justification: null },
+      { id: 6, name: "Fabien Roux", status: "PRESENT", justification: null },
     ],
   },
   {
     id: 3,
     time: "14:00 – 15:30",
-    subject: "English",
-    class: "BBA-1",
-    level: "A2",
-    teacher: "Ms. Emily Davis",
+    subject: "Spécialité Maths",
+    class: "Terminale S2",
+    level: "Terminal",
     students: [
       {
         id: 7,
-        name: "Anil Karki",
+        name: "Georges Blanc",
         status: "ABSENT",
         justification: "justified",
       },
-      { id: 8, name: "Mina Lama", status: "PRESENT", justification: null },
-      { id: 9, name: "Raj Sharma", status: "PRESENT", justification: null },
+      { id: 8, name: "Hélène Petit", status: "PRESENT", justification: null },
+      { id: 9, name: "Ivan Dubois", status: "PRESENT", justification: null },
     ],
   },
   {
     id: 4,
     time: "15:45 – 17:30",
-    subject: "Computer Science",
-    class: "BBA-1",
-    level: "A2",
-    teacher: "Mr. David Wilson",
+    subject: "Mathématiques",
+    class: "2nde 3",
+    level: "2nde",
     students: [
-      { id: 10, name: "Sita Pradhan", status: "PRESENT", justification: null },
+      { id: 10, name: "Julie Martin", status: "PRESENT", justification: null },
       {
         id: 11,
-        name: "Kumar Basnet",
+        name: "Kevin Durand",
         status: "LATE",
         justification: "not_justified",
       },
-      { id: 12, name: "Anita Ghale", status: "PRESENT", justification: null },
-    ],
-  },
-  {
-    id: 5,
-    time: "09:00 – 10:30",
-    subject: "Economics",
-    class: "BHM-3",
-    level: "B1",
-    teacher: "Dr. Robert Brown",
-    students: [
-      {
-        id: 13,
-        name: "Ramesh Adhikari",
-        status: "PRESENT",
-        justification: null,
-      },
-      {
-        id: 14,
-        name: "Gita Poudel",
-        status: "ABSENT",
-        justification: "not_justified",
-      },
-      { id: 15, name: "Hari Bhandari", status: "PRESENT", justification: null },
+      { id: 12, name: "Léa Bernard", status: "PRESENT", justification: null },
     ],
   },
 ];
@@ -124,7 +91,7 @@ const CLASSES = [...new Set(MOCK_SESSIONS.map((s) => s.class))];
 const SUBJECTS = [...new Set(MOCK_SESSIONS.map((s) => s.subject))];
 const STATUSES = ["All", "PRESENT", "ABSENT", "LATE"];
 
-export const GlobalAttendance = () => {
+export const TeacherAttendance = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [classFilter, setClassFilter] = useState("");
   const [subjectFilter, setSubjectFilter] = useState("");
@@ -229,20 +196,15 @@ export const GlobalAttendance = () => {
         {/* Filters Bar */}
         <div className="filters-bar">
           <div className="filters-bar-left">
-            {/* Search - Wider */}
-            <div className="w-full-mobile">
-              <div className="search-input-wrapper">
-                <Search
-                  size={16}
-                  className="text-[var(--text-muted)] shrink-0"
-                />
-                <input
-                  type="text"
-                  placeholder="Search student..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                />
-              </div>
+            {/* Search */}
+            <div className="search-input-wrapper w-full-mobile">
+              <Search size={16} className="text-[var(--text-muted)] shrink-0" />
+              <input
+                type="text"
+                placeholder="Search student..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+              />
             </div>
 
             {/* Class Filter */}
@@ -259,7 +221,7 @@ export const GlobalAttendance = () => {
             </div>
 
             {/* Subject Filter */}
-            <div className="w-full-mobile">
+            <div className="w-full-mobile hide-mobile">
               <CustomSelect
                 value={subjectFilter}
                 onChange={setSubjectFilter}
@@ -272,7 +234,7 @@ export const GlobalAttendance = () => {
             </div>
 
             {/* Status Filter */}
-            <div className="w-full-mobile">
+            <div className="w-full-mobile hide-mobile">
               <CustomSelect
                 value={statusFilter}
                 onChange={setStatusFilter}
@@ -325,12 +287,11 @@ export const GlobalAttendance = () => {
             <table className="data-table">
               <thead>
                 <tr>
-                  <th style={{ width: "130px" }}>Session Time</th>
-                  <th>Student Name</th>
+                  <th style={{ width: "110px" }}>Time</th>
+                  <th>Student</th>
                   <th>Class</th>
-                  <th>Level</th>
-                  <th className="hide-mobile">Subject</th>
-                  <th className="hide-mobile">Teacher</th>
+                  <th className="hide-mobile">Level</th>
+                  <th className="hide-tablet">Subject</th>
                   <th className="text-center" style={{ minWidth: "160px" }}>
                     Status
                   </th>
@@ -343,7 +304,7 @@ export const GlobalAttendance = () => {
                 {filteredSessions.length === 0 ? (
                   <tr>
                     <td
-                      colSpan={8}
+                      colSpan={7}
                       className="text-center py-8 text-[var(--text-muted)]"
                     >
                       No attendance records found
@@ -380,7 +341,7 @@ export const GlobalAttendance = () => {
                         </td>
 
                         {/* Level */}
-                        <td data-label="Level">
+                        <td data-label="Level" className="hide-mobile">
                           <span className="px-2 py-1 bg-[var(--bg-main)] text-[var(--text-secondary)] text-xs font-medium">
                             {session.level}
                           </span>
@@ -389,22 +350,14 @@ export const GlobalAttendance = () => {
                         {/* Subject */}
                         <td
                           data-label="Subject"
-                          className="text-[var(--text-secondary)] hide-mobile"
+                          className="text-[var(--text-secondary)] hide-tablet"
                         >
                           {session.subject}
                         </td>
 
-                        {/* Teacher */}
-                        <td
-                          data-label="Teacher"
-                          className="text-[var(--text-secondary)] hide-mobile"
-                        >
-                          {session.teacher}
-                        </td>
-
                         {/* Status Buttons */}
                         <td data-label="Status" className="no-label">
-                          <div className="flex items-center justify-center gap-2">
+                          <div className="attendance-status-btns justify-center">
                             <button
                               onClick={() =>
                                 updateStudentStatus(

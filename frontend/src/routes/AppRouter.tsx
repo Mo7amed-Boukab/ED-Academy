@@ -6,11 +6,12 @@ import { SubjectsManagement } from '../features/admin/dashboard/pages/SubjectsMa
 import { GlobalAttendance } from '../features/admin/dashboard/pages/GlobalAttendance';
 
 // Teacher Pages
-import { TeacherOverview } from '../features/teacher/dashboard/pages/TeacherDashboard';
+import { TeacherDashboard } from '../features/teacher/dashboard/pages/TeacherDashboard';
 import { MyClasses } from '../features/teacher/dashboard/pages/MyClasses';
 import { TeacherSessions } from '../features/teacher/dashboard/pages/TeacherSessions';
 import { TeacherSubjects } from '../features/teacher/dashboard/pages/TeacherSubjects';
 import { TeacherStudents } from '../features/teacher/dashboard/pages/TeacherStudents';
+import { TeacherAttendance } from '../features/teacher/dashboard/pages/TeacherAttendance';
 
 // Student Pages
 import { StudentOverview } from '../features/student/dashboard/pages/StudentDashboard';
@@ -48,11 +49,12 @@ export const AppRouter = () => {
                     {/* Teacher Routes */}
                     <Route element={<ProtectedRoute allowedRoles={['TEACHER']} />}>
                         <Route element={<DashboardLayout />}>
-                            <Route path="/teacher" element={<TeacherOverview />} />
+                            <Route path="/teacher" element={<TeacherDashboard />} />
                             <Route path="/teacher/classes" element={<MyClasses />} />
                             <Route path="/teacher/sessions" element={<TeacherSessions />} />
                             <Route path="/teacher/subjects" element={<TeacherSubjects />} />
                             <Route path="/teacher/students" element={<TeacherStudents />} />
+                            <Route path="/teacher/attendance" element={<TeacherAttendance />} />
                             {/* Fallback */}
                             <Route path="/teacher/schedule" element={<Navigate to="/teacher/sessions" replace />} />
                         </Route>
