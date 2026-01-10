@@ -55,7 +55,9 @@ export const MyClasses = () => {
 
   // Get unique levels for filter from all classes, not filtered ones
   const levels = Array.from(
-    new Set(allClasses.map((c) => c.level).filter((l): l is string => Boolean(l)))
+    new Set(
+      allClasses.map((c) => c.level).filter((l): l is string => Boolean(l))
+    )
   );
 
   return (

@@ -1,56 +1,64 @@
-import { api } from '../../../api/axios';
-import type { Student, CreateStudentDto, UpdateStudentDto, StudentFilters, StudentResponse } from '../types/student.types';
+import { api } from "../../../api/axios";
+import type {
+  Student,
+  CreateStudentDto,
+  UpdateStudentDto,
+  StudentFilters,
+  StudentResponse,
+} from "../types/student.types";
 
 export const studentService = {
-    /**
-     * Get all students with optional filters and pagination
-     */
-    async getAll(filters?: StudentFilters): Promise<StudentResponse> {
-        const params = new URLSearchParams();
+  /**
+   * Get all students with optional filters and pagination
+   */
+  async getAll(filters?: StudentFilters): Promise<StudentResponse> {
+    const params = new URLSearchParams();
 
-        // Always filter by STUDENT role
-        params.append('role', 'STUDENT');
+    // Always filter by STUDENT role
+    params.append("role", "STUDENT");
 
-        if (filters?.classId) params.append('classId', filters.classId);
-        if (filters?.search) params.append('search', filters.search);
-        if (filters?.page) params.append('page', filters.page.toString());
-        if (filters?.limit) params.append('limit', filters.limit.toString());
+    if (filters?.classId) params.append("classId", filters.classId);
+    if (filters?.search) params.append("search", filters.search);
+    if (filters?.page) params.append("page", filters.page.toString());
+    if (filters?.limit) params.append("limit", filters.limit.toString());
 
-        const response = await api.get<any>(`/users?${params.toString()}`);
-        return response.data.data;
-    },
+    const response = await api.get<any>(`/users?${params.toString()}`);
+    return response.data.data;
+  },
 
-    /**
-     * Create a new student
-     */
-    async create(data: CreateStudentDto): Promise<Student> {
-        const response = await api.post<any>('/users', {
-            ...data,
-            role: 'STUDENT'
-        });
-        return response.data.data;
-    },
+  /**
+   * Create a new student
+   */
+  async create(data: CreateStudentDto): Promise<Student> {
+    const response = await api.post<any>("/users", {
+      ...data,
+      role: "STUDENT",
+    });
+    return response.data.data;
+  },
 
-    /**
-     * Update an existing student
-     */
-    async update(id: string, data: UpdateStudentDto): Promise<Student> {
-        const response = await api.put<any>(`/users/${id}`, data);
-        return response.data.data;
-    },
+  /**
+   * Update an existing student
+   */
+  async update(id: string, data: UpdateStudentDto): Promise<Student> {
+    const response = await api.put<any>(`/users/${id}`, data);
+    return response.data.data;
+  },
 
-    /**
-     * Delete a student
-     */
-    async delete(id: string): Promise<void> {
-        await api.delete(`/users/${id}`);
-    },
+  /**
+   * Delete a student
+   */
+  async delete(id: string): Promise<void> {
+    await api.delete(`/users/${id}`);
+  },
 
-    /**
-     * Assign a student to a class
-     */
-    async assignToClass(studentId: string, classId: string): Promise<Student> {
-        const response = await api.put<any>(`/users/${studentId}/assign-class`, { classId });
-        return response.data.data;
-    }
+  /**
+   * Assign a student to a class
+   */
+  async assignToClass(studentId: string, classId: string): Promise<Student> {
+    const response = await api.put<any>(`/users/${studentId}/assign-class`, {
+      classId,
+    });
+    return response.data.data;
+  },
 };

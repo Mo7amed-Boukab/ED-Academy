@@ -99,6 +99,9 @@ model Subject {
 model Session {
   id        String   @id @default(uuid()) @db.Uuid
   date      DateTime
+  startTime String
+  endTime   String
+  room      String
 
   classId String @db.Uuid
   class   Class  @relation(fields: [classId], references: [id])

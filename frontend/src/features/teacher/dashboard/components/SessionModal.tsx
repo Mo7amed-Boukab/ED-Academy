@@ -1,12 +1,17 @@
 import { X } from "lucide-react";
 import { useState, useEffect } from "react";
 import { CustomSelect } from "../../../../components/CustomSelect";
+import type {
+  Session,
+  CreateSessionDto,
+  UpdateSessionDto,
+} from "../../types/session.types";
 
 interface SessionModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSave: (data: any) => void;
-  session?: any;
+  onSave: (data: CreateSessionDto | UpdateSessionDto) => void;
+  session?: Session;
   availableClasses: { id: string; name: string }[];
   availableSubjects: { id: string; name: string }[];
 }
@@ -21,32 +26,34 @@ export const SessionModal = ({
 }: SessionModalProps) => {
   const [formData, setFormData] = useState({
     date: "",
-    classId: "",
-    subjectId: "",
     startTime: "",
     endTime: "",
     room: "",
+    classId: "",
+    subjectId: "",
   });
 
   useEffect(() => {
     if (session) {
       const sessionDate = new Date(session.date);
+      const dateStr = sessionDate.toISOString().split("T")[0];
+
       setFormData({
-        date: sessionDate.toISOString().split("T")[0],
-        classId: session.class?.id || "",
-        subjectId: session.subject?.id || "",
-        startTime: session.startTime || "",
-        endTime: session.endTime || "",
-        room: session.room || "",
+        date: dateStr,
+        startTime: session.startTime,
+        endTime: session.endTime,
+        room: session.room,
+        classId: session.class?.id || session.classId,
+        subjectId: session.subject?.id || session.subjectId,
       });
     } else {
       setFormData({
         date: "",
-        classId: "",
-        subjectId: "",
         startTime: "",
         endTime: "",
         room: "",
+        classId: "",
+        subjectId: "",
       });
     }
   }, [session, isOpen]);
@@ -55,7 +62,17 @@ export const SessionModal = ({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    onSave(formData);
+
+    const sessionData = {
+      date: formData.date,
+      startTime: formData.startTime,
+      endTime: formData.endTime,
+      room: formData.room,
+      classId: formData.classId,
+      subjectId: formData.subjectId,
+    };
+
+    onSave(sessionData);
     onClose();
   };
 
@@ -88,6 +105,34 @@ export const SessionModal = ({
 
             <div className="grid grid-cols-2 gap-4">
               <div className="form-group">
+                <label className="form-label">Start Time</label>
+                <input
+                  type="time"
+                  required
+                  value={formData.startTime}
+                  onChange={(e) =>
+                    setFormData({ ...formData, startTime: e.target.value })
+                  }
+                  className="form-input"
+                />
+              </div>
+
+              <div className="form-group">
+                <label className="form-label">End Time</label>
+                <input
+                  type="time"
+                  required
+                  value={formData.endTime}
+                  onChange={(e) =>
+                    setFormData({ ...formData, endTime: e.target.value })
+                  }
+                  className="form-input"
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="form-group">
                 <CustomSelect
                   label="Class"
                   value={formData.classId}
@@ -115,37 +160,11 @@ export const SessionModal = ({
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
-              <div className="form-group">
-                <label className="form-label">Start Time</label>
-                <input
-                  type="time"
-                  required
-                  value={formData.startTime}
-                  onChange={(e) =>
-                    setFormData({ ...formData, startTime: e.target.value })
-                  }
-                  className="form-input"
-                />
-              </div>
-              <div className="form-group">
-                <label className="form-label">End Time</label>
-                <input
-                  type="time"
-                  required
-                  value={formData.endTime}
-                  onChange={(e) =>
-                    setFormData({ ...formData, endTime: e.target.value })
-                  }
-                  className="form-input"
-                />
-              </div>
-            </div>
-
             <div className="form-group">
               <label className="form-label">Room</label>
               <input
                 type="text"
+                required
                 value={formData.room}
                 onChange={(e) =>
                   setFormData({ ...formData, room: e.target.value })

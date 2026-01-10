@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { SearchInput } from "../../../../components/SearchInput";
 import { CustomSelect } from "../../../../components/CustomSelect";
 import { ActionMenu } from "../../../../components/ActionMenu";
@@ -8,73 +8,64 @@ import {
   Trash2,
   Calendar,
   Clock,
-  MapPin,
   BookOpen,
+  Loader2,
+  MapPin,
 } from "lucide-react";
 import { SessionModal } from "../components/SessionModal";
 import { DeleteConfirmationModal } from "../../../../components/DeleteConfirmationModal";
+import { teacherService } from "../../services/teacherService";
+import type { Session } from "../../types/session.types";
+import type { TeacherClass } from "../../types/teacher.types";
 
 export const TeacherSessions = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [classFilter, setClassFilter] = useState("All");
   const [isSessionModalOpen, setIsSessionModalOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
-  const [selectedSession, setSelectedSession] = useState<any>(null);
+  const [selectedSession, setSelectedSession] = useState<Session | null>(null);
+  const [sessions, setSessions] = useState<Session[]>([]);
+  const [classes, setClasses] = useState<TeacherClass[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  // Mock data
-  const allSessions = [
-    {
-      id: "1",
-      date: "2024-01-15T08:00:00",
-      class: { id: "c1", name: "Terminale S1" },
-      subject: { id: "s1", name: "Mathématiques" },
-      startTime: "08:00",
-      endTime: "10:00",
-      room: "Salle 101",
-    },
-    {
-      id: "2",
-      date: "2024-01-15T14:00:00",
-      class: { id: "c2", name: "1ère S2" },
-      subject: { id: "s2", name: "Mathématiques" },
-      startTime: "14:00",
-      endTime: "15:30",
-      room: "Salle 204",
-    },
-    {
-      id: "3",
-      date: "2024-01-16T10:00:00",
-      class: { id: "c3", name: "2nde 3" },
-      subject: { id: "s3", name: "Mathématiques" },
-      startTime: "10:00",
-      endTime: "12:00",
-      room: "Salle 305",
-    },
-    {
-      id: "4",
-      date: "2024-01-18T08:00:00",
-      class: { id: "c4", name: "Terminale S2" },
-      subject: { id: "s4", name: "Spécialité Maths" },
-      startTime: "08:00",
-      endTime: "10:00",
-      room: "Lab 1",
-    },
-  ];
+  // Fetch classes and sessions
+  useEffect(() => {
+    fetchClasses();
+    fetchSessions();
+  }, []);
 
-  const availableClasses = [
-    { id: "c1", name: "Terminale S1" },
-    { id: "c2", name: "1ère S2" },
-    { id: "c3", name: "2nde 3" },
-    { id: "c4", name: "Terminale S2" },
-  ];
+  const fetchClasses = async () => {
+    try {
+      const response = await teacherService.getMyClasses({ limit: 100 });
+      setClasses(response.data);
+    } catch (err: any) {
+      console.error("Error fetching classes:", err);
+    }
+  };
 
-  const availableSubjects = [
-    { id: "s1", name: "Mathématiques" },
-    { id: "s2", name: "Spécialité Maths" },
-  ];
+  const fetchSessions = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const response = await teacherService.getSessions({ limit: 100 });
+      setSessions(response.data);
+    } catch (err: any) {
+      console.error("Error fetching sessions:", err);
+      setError(err.response?.data?.message || "Failed to load sessions");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Get unique subjects from classes
+  const availableSubjects = classes.flatMap((cls) => cls.subjects || []);
+  const uniqueSubjects = Array.from(
+    new Map(availableSubjects.map((s) => [s.id, s])).values()
+  );
 
   // Filter logic
-  const filteredSessions = allSessions.filter((session) => {
+  const filteredSessions = sessions.filter((session) => {
     const matchesSearch =
       session.subject.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       session.class.name.toLowerCase().includes(searchQuery.toLowerCase());
@@ -83,14 +74,14 @@ export const TeacherSessions = () => {
     return matchesSearch && matchesClass;
   });
 
-  const classes = Array.from(new Set(allSessions.map((s) => s.class.name)));
+  const classNames = Array.from(new Set(sessions.map((s) => s.class.name)));
 
-  const handleEdit = (session: any) => {
+  const handleEdit = (session: Session) => {
     setSelectedSession(session);
     setIsSessionModalOpen(true);
   };
 
-  const handleDelete = (session: any) => {
+  const handleDelete = (session: Session) => {
     setSelectedSession(session);
     setIsDeleteModalOpen(true);
   };
@@ -100,14 +91,32 @@ export const TeacherSessions = () => {
     setIsSessionModalOpen(true);
   };
 
-  const handleSaveSession = (data: any) => {
-    console.log("Saving session:", data);
+  const handleSaveSession = async (sessionData: any) => {
+    try {
+      if (selectedSession) {
+        await teacherService.updateSession(selectedSession.id, sessionData);
+      } else {
+        await teacherService.createSession(sessionData);
+      }
+      fetchSessions();
+      setIsSessionModalOpen(false);
+    } catch (err: any) {
+      console.error("Error saving session:", err);
+      alert(err.response?.data?.message || "Failed to save session");
+    }
   };
 
-  const handleConfirmDelete = () => {
-    console.log("Deleting session:", selectedSession);
-    setIsDeleteModalOpen(false);
-    setSelectedSession(null);
+  const handleConfirmDelete = async () => {
+    if (!selectedSession) return;
+    try {
+      await teacherService.deleteSession(selectedSession.id);
+      fetchSessions();
+      setIsDeleteModalOpen(false);
+      setSelectedSession(null);
+    } catch (err: any) {
+      console.error("Error deleting session:", err);
+      alert(err.response?.data?.message || "Failed to delete session");
+    }
   };
 
   const formatDate = (dateString: string) => {
@@ -118,6 +127,22 @@ export const TeacherSessions = () => {
       day: "numeric",
     });
   };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <Loader2 className="w-8 h-8 animate-spin text-indigo-600" />
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="bg-red-50 border border-red-200 rounded-lg p-4 text-red-700">
+        {error}
+      </div>
+    );
+  }
 
   return (
     <div className="animate-fadeIn">
@@ -136,7 +161,7 @@ export const TeacherSessions = () => {
               <CustomSelect
                 value={classFilter}
                 onChange={setClassFilter}
-                options={["All", ...classes]}
+                options={["All", ...classNames]}
                 placeholder="Class"
               />
             </div>
@@ -177,24 +202,25 @@ export const TeacherSessions = () => {
                 ) : (
                   filteredSessions.map((session) => (
                     <tr key={session.id}>
-                      {/* Mobile Action Menu */}
-                      <ActionMenu
-                        actions={[
-                          {
-                            label: "Edit",
-                            icon: <Edit2 size={16} />,
-                            onClick: () => handleEdit(session),
-                          },
-                          {
-                            label: "Delete",
-                            icon: <Trash2 size={16} />,
-                            onClick: () => handleDelete(session),
-                            variant: "danger",
-                          },
-                        ]}
-                      />
-
                       <td data-label="Date" className="no-label">
+                        {/* Mobile Action Menu */}
+                        <div className="show-mobile">
+                          <ActionMenu
+                            actions={[
+                              {
+                                label: "Edit",
+                                icon: <Edit2 size={16} />,
+                                onClick: () => handleEdit(session),
+                              },
+                              {
+                                label: "Delete",
+                                icon: <Trash2 size={16} />,
+                                onClick: () => handleDelete(session),
+                                variant: "danger",
+                              },
+                            ]}
+                          />
+                        </div>
                         <div className="flex items-center gap-2 text-gray-700">
                           <Calendar size={14} className="text-gray-400" />
                           <span className="capitalize">
@@ -268,9 +294,9 @@ export const TeacherSessions = () => {
         isOpen={isSessionModalOpen}
         onClose={() => setIsSessionModalOpen(false)}
         onSave={handleSaveSession}
-        session={selectedSession}
-        availableClasses={availableClasses}
-        availableSubjects={availableSubjects}
+        session={selectedSession || undefined}
+        availableClasses={classes}
+        availableSubjects={uniqueSubjects}
       />
 
       <DeleteConfirmationModal
