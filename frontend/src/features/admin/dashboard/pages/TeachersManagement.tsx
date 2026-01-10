@@ -5,8 +5,8 @@ import { SearchInput } from "../../../../components/SearchInput";
 import { TeachersTable } from "../components/TeachersTable";
 import { TeacherModal } from "../components/TeacherModal";
 import { DeleteConfirmationModal } from "../../../../components/DeleteConfirmationModal";
-import { teacherApi } from "../../services/teacher.api";
-import { classApi } from "../../services/class.api";
+import { teacherService } from "../../services/teacherService";
+import { classService } from "../../services/classService";
 import { useDebounce } from "../../../../hooks/useDebounce";
 import type { Class } from "../../types/class.types";
 import type { Teacher } from "../../types/teacher.types";
@@ -34,8 +34,8 @@ export const TeachersManagement = () => {
 
       // Parallel fetch
       const [teachersRes, classesRes] = await Promise.all([
-        teacherApi.getAll({ limit: 100, search: debouncedSearch }),
-        classApi.getAll({ limit: 100 }),
+        teacherService.getAll({ limit: 100, search: debouncedSearch }),
+        classService.getAll({ limit: 100 }),
       ]);
 
       setTeachers(teachersRes.data);
@@ -104,7 +104,7 @@ export const TeachersManagement = () => {
   const handleConfirmDelete = async () => {
     if (!selectedTeacher) return;
     try {
-      await teacherApi.delete(selectedTeacher.id);
+      await teacherService.delete(selectedTeacher.id);
       await fetchData();
       setIsDeleteModalOpen(false);
       setSelectedTeacher(null);
@@ -118,14 +118,14 @@ export const TeachersManagement = () => {
       let savedTeacher;
       if (selectedTeacher) {
         // Update
-        savedTeacher = await teacherApi.update(selectedTeacher.id, {
+        savedTeacher = await teacherService.update(selectedTeacher.id, {
           fullName: teacherData.fullName,
           email: teacherData.email,
           password: teacherData.password || undefined, // Only send if set
         });
       } else {
         // Create
-        savedTeacher = await teacherApi.create({
+        savedTeacher = await teacherService.create({
           fullName: teacherData.fullName,
           email: teacherData.email,
           password: teacherData.password,
@@ -143,7 +143,7 @@ export const TeachersManagement = () => {
       // Classes to assign (new ones)
       for (const classId of newClassIds) {
         if (!currentClassIds.includes(classId)) {
-          await classApi.assignTeacher(classId, savedTeacher.id);
+          await classService.assignTeacher(classId, savedTeacher.id);
         }
       }
 
@@ -151,7 +151,7 @@ export const TeachersManagement = () => {
       for (const classId of currentClassIds) {
         if (!newClassIds.includes(classId)) {
           // Unassign by setting teacherId to null (empty string in API)
-          await classApi.update(classId, { teacherId: "" });
+          await classService.update(classId, { teacherId: "" });
         }
       }
 

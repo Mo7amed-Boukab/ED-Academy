@@ -5,8 +5,8 @@ import { SearchInput } from "../../../../components/SearchInput";
 import { StudentsTable } from "../components/StudentsTable";
 import { StudentModal } from "../components/StudentModal";
 import { DeleteConfirmationModal } from "../../../../components/DeleteConfirmationModal";
-import { studentApi } from "../../services/student.api";
-import { classApi } from "../../services/class.api";
+import { studentService } from "../../services/studentService";
+import { classService } from "../../services/classService";
 import { useDebounce } from "../../../../hooks/useDebounce";
 import type { Student } from "../../types/student.types";
 import type { Class } from "../../types/class.types";
@@ -42,8 +42,8 @@ export const StudentsManagement = () => {
       }
 
       const [studentsRes, classesRes] = await Promise.all([
-        studentApi.getAll(filters),
-        classApi.getAll({ limit: 100 }),
+        studentService.getAll(filters),
+        classService.getAll({ limit: 100 }),
       ]);
 
       setStudents(studentsRes.data);
@@ -81,7 +81,7 @@ export const StudentsManagement = () => {
   const handleConfirmDelete = async () => {
     if (!selectedStudent) return;
     try {
-      await studentApi.delete(selectedStudent.id);
+      await studentService.delete(selectedStudent.id);
       await fetchData();
       setIsDeleteModalOpen(false);
       setSelectedStudent(null);
@@ -94,7 +94,7 @@ export const StudentsManagement = () => {
     try {
       if (selectedStudent) {
         // Update
-        await studentApi.update(selectedStudent.id, {
+        await studentService.update(selectedStudent.id, {
           fullName: studentData.fullName,
           email: studentData.email,
           password: studentData.password || undefined,
@@ -102,7 +102,7 @@ export const StudentsManagement = () => {
         });
       } else {
         // Create
-        await studentApi.create({
+        await studentService.create({
           fullName: studentData.fullName,
           email: studentData.email,
           password: studentData.password,

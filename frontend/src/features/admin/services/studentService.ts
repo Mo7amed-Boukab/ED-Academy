@@ -1,9 +1,7 @@
 import { api } from '../../../api/axios';
 import type { Student, CreateStudentDto, UpdateStudentDto, StudentFilters, StudentResponse } from '../types/student.types';
 
-const BASE_PATH = '/users';
-
-export const studentApi = {
+export const studentService = {
     /**
      * Get all students with optional filters and pagination
      */
@@ -18,7 +16,7 @@ export const studentApi = {
         if (filters?.page) params.append('page', filters.page.toString());
         if (filters?.limit) params.append('limit', filters.limit.toString());
 
-        const response = await api.get<any>(`${BASE_PATH}?${params.toString()}`);
+        const response = await api.get<any>(`/users?${params.toString()}`);
         return response.data.data;
     },
 
@@ -26,7 +24,7 @@ export const studentApi = {
      * Create a new student
      */
     async create(data: CreateStudentDto): Promise<Student> {
-        const response = await api.post<any>(BASE_PATH, {
+        const response = await api.post<any>('/users', {
             ...data,
             role: 'STUDENT'
         });
@@ -37,7 +35,7 @@ export const studentApi = {
      * Update an existing student
      */
     async update(id: string, data: UpdateStudentDto): Promise<Student> {
-        const response = await api.put<any>(`${BASE_PATH}/${id}`, data);
+        const response = await api.put<any>(`/users/${id}`, data);
         return response.data.data;
     },
 
@@ -45,14 +43,14 @@ export const studentApi = {
      * Delete a student
      */
     async delete(id: string): Promise<void> {
-        await api.delete(`${BASE_PATH}/${id}`);
+        await api.delete(`/users/${id}`);
     },
 
     /**
      * Assign a student to a class
      */
     async assignToClass(studentId: string, classId: string): Promise<Student> {
-        const response = await api.put<any>(`${BASE_PATH}/${studentId}/assign-class`, { classId });
+        const response = await api.put<any>(`/users/${studentId}/assign-class`, { classId });
         return response.data.data;
     }
 };

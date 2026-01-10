@@ -5,8 +5,8 @@ import { SearchInput } from "../../../../components/SearchInput";
 import { ClassesTable } from "../components/ClassesTable";
 import { ClassModal } from "../components/ClassModal";
 import { DeleteConfirmationModal } from "../../../../components/DeleteConfirmationModal";
-import { classApi } from "../../services/class.api";
-import { teacherApi } from "../../services/teacher.api";
+import { classService } from "../../services/classService";
+import { teacherService } from "../../services/teacherService";
 import { useDebounce } from "../../../../hooks/useDebounce";
 import type { Class } from "../../types/class.types";
 
@@ -39,7 +39,7 @@ export const ClassesManagement = () => {
         limit: 100, // Get all classes for now
       };
 
-      const response = await classApi.getAll(filters);
+      const response = await classService.getAll(filters);
       setClasses(response.data);
     } catch (err: any) {
       console.error("Error fetching classes:", err);
@@ -54,7 +54,7 @@ export const ClassesManagement = () => {
   // Fetch teachers for the modal
   const fetchTeachers = async () => {
     try {
-      const response = await teacherApi.getAll({ limit: 100 });
+      const response = await teacherService.getAll({ limit: 100 });
       setTeachers(
         response.data.map((t: any) => ({
           id: t.id,
@@ -92,7 +92,7 @@ export const ClassesManagement = () => {
     if (!selectedClass) return;
 
     try {
-      await classApi.delete(selectedClass.id);
+      await classService.delete(selectedClass.id);
       await fetchClasses(); // Refresh list
       setIsDeleteModalOpen(false);
       setSelectedClass(null);
@@ -105,10 +105,10 @@ export const ClassesManagement = () => {
     try {
       if (selectedClass) {
         // Update existing class
-        await classApi.update(selectedClass.id, classData);
+        await classService.update(selectedClass.id, classData);
       } else {
         // Create new class
-        await classApi.create(classData);
+        await classService.create(classData);
       }
 
       await fetchClasses(); // Refresh list

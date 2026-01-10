@@ -5,9 +5,9 @@ import { CustomSelect } from "../../../../components/CustomSelect";
 import { SubjectsTable } from "../components/SubjectsTable";
 import { SubjectModal } from "../components/SubjectModal";
 import { DeleteConfirmationModal } from "../../../../components/DeleteConfirmationModal";
-import { subjectApi } from "../../services/subject.api";
-import { classApi } from "../../services/class.api";
-import { teacherApi } from "../../services/teacher.api";
+import { subjectService } from "../../services/subjectService";
+import { classService } from "../../services/classService";
+import { teacherService } from "../../services/teacherService";
 import { useDebounce } from "../../../../hooks/useDebounce";
 import type { Subject } from "../../types/subject.types";
 import type { Class } from "../../types/class.types";
@@ -44,9 +44,9 @@ export const SubjectsManagement = () => {
 
       // Fetch subjects, classes, and teachers in parallel
       const [subjectsRes, classesRes, teachersRes] = await Promise.all([
-        subjectApi.getAll(filters),
-        classApi.getAll({ limit: 100 }),
-        teacherApi.getAll({ limit: 100 }),
+        subjectService.getAll(filters),
+        classService.getAll({ limit: 100 }),
+        teacherService.getAll({ limit: 100 }),
       ]);
 
       setSubjects(subjectsRes.data);
@@ -90,7 +90,7 @@ export const SubjectsManagement = () => {
   const handleConfirmDelete = async () => {
     if (!selectedSubject) return;
     try {
-      await subjectApi.delete(selectedSubject.id);
+      await subjectService.delete(selectedSubject.id);
       await fetchData();
       setIsDeleteModalOpen(false);
       setSelectedSubject(null);
@@ -104,10 +104,10 @@ export const SubjectsManagement = () => {
     try {
       if (selectedSubject) {
         // Update
-        await subjectApi.update(selectedSubject.id, subjectData);
+        await subjectService.update(selectedSubject.id, subjectData);
       } else {
         // Create
-        await subjectApi.create(subjectData);
+        await subjectService.create(subjectData);
       }
       await fetchData();
       setIsSubjectModalOpen(false);

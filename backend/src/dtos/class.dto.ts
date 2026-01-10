@@ -2,7 +2,7 @@ export interface CreateClassDto {
     name: string;
     level?: string;
     academicYear?: string;
-    teacherId?: string; // Optional at creation
+    teacherId?: string; 
 }
 
 export interface UpdateClassDto {

@@ -1,9 +1,7 @@
 import { api } from '../../../api/axios';
 import type { Teacher, CreateTeacherDto, UpdateTeacherDto, TeacherFilters, TeacherResponse } from '../types/teacher.types';
 
-const BASE_PATH = '/users';
-
-export const teacherApi = {
+export const teacherService = {
     /**
      * Get all teachers with optional filters and pagination
      */
@@ -18,7 +16,7 @@ export const teacherApi = {
         if (filters?.page) params.append('page', filters.page.toString());
         if (filters?.limit) params.append('limit', filters.limit.toString());
 
-        const response = await api.get<any>(`${BASE_PATH}?${params.toString()}`);
+        const response = await api.get<any>(`/users?${params.toString()}`);
         return response.data.data;
     },
 
@@ -26,7 +24,7 @@ export const teacherApi = {
      * Create a new teacher
      */
     async create(data: CreateTeacherDto): Promise<Teacher> {
-        const response = await api.post<any>(BASE_PATH, {
+        const response = await api.post<any>('/users', {
             ...data,
             role: 'TEACHER'
         });
@@ -37,7 +35,7 @@ export const teacherApi = {
      * Update an existing teacher
      */
     async update(id: string, data: UpdateTeacherDto): Promise<Teacher> {
-        const response = await api.put<any>(`${BASE_PATH}/${id}`, data);
+        const response = await api.put<any>(`/users/${id}`, data);
         return response.data.data;
     },
 
@@ -45,6 +43,6 @@ export const teacherApi = {
      * Delete a teacher
      */
     async delete(id: string): Promise<void> {
-        await api.delete(`${BASE_PATH}/${id}`);
+        await api.delete(`/users/${id}`);
     }
 };

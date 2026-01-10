@@ -1,5 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
-import { createClass, getAllClasses, getClassById, assignTeacher, updateClass, deleteClass } from '../services/classService';
+import { createClass, getAllClasses, getClassById, assignTeacher, updateClass, deleteClass, getTeacherClasses } from '../services/classService';
 import ApiError from '../utils/ApiError';
 import { CreateClassDto, AssignTeacherDto, UpdateClassDto } from '../dtos/class.dto';
 import { AuthRequest } from '../middlewares/authMiddleware';
@@ -81,6 +81,26 @@ export class ClassController {
             const { id } = req.params;
             await deleteClass(id);
             ApiResponse.success(res, null, 'Class deleted successfully');
+        } catch (err: any) {
+            next(err instanceof ApiError ? err : ApiError.internal(err.message));
+        }
+    }
+
+    static async getMyClasses(req: AuthRequest, res: Response, next: NextFunction) {
+        try {
+            const teacherId = req.user!.userId;
+            const { level, search, page, limit } = req.query;
+            
+            const filters = {
+                ...(level && { level: String(level) }),
+                ...(search && { search: String(search) })
+            };
+
+            const pageNum = Number(page) || 1;
+            const limitNum = Number(limit) || 100;
+
+            const classes = await getTeacherClasses(teacherId, filters, pageNum, limitNum);
+            ApiResponse.success(res, classes, 'Teacher classes retrieved successfully');
         } catch (err: any) {
             next(err instanceof ApiError ? err : ApiError.internal(err.message));
         }

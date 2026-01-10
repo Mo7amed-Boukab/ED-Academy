@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
-import { loginUser } from "./services/auth.api";
+import { authService } from "./services/authService";
 import { Loader2, AlertCircle, Eye, EyeOff } from "lucide-react";
 
 export const LoginPage = () => {
@@ -21,7 +21,7 @@ export const LoginPage = () => {
     setIsLoading(true);
 
     try {
-      const response = await loginUser({ email, password });
+      const response = await authService.login({ email, password });
       const { token, user } = response.data;
 
       login(token, user);

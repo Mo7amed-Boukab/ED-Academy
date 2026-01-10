@@ -1,9 +1,7 @@
 import { api } from '../../../api/axios';
 import type { Class, CreateClassDto, UpdateClassDto, ClassFilters, ClassResponse } from '../types/class.types';
 
-const BASE_PATH = '/classes';
-
-export const classApi = {
+export const classService = {
     /**
      * Get all classes with optional filters and pagination
      */
@@ -16,7 +14,7 @@ export const classApi = {
         if (filters?.page) params.append('page', filters.page.toString());
         if (filters?.limit) params.append('limit', filters.limit.toString());
 
-        const response = await api.get<any>(`${BASE_PATH}?${params.toString()}`);
+        const response = await api.get<any>(`/classes?${params.toString()}`);
         return response.data.data;
     },
 
@@ -24,7 +22,7 @@ export const classApi = {
      * Get a single class by ID
      */
     async getById(id: string): Promise<Class> {
-        const response = await api.get<any>(`${BASE_PATH}/${id}`);
+        const response = await api.get<any>(`/classes/${id}`);
         return response.data.data;
     },
 
@@ -32,7 +30,7 @@ export const classApi = {
      * Create a new class
      */
     async create(data: CreateClassDto): Promise<Class> {
-        const response = await api.post<any>(BASE_PATH, data);
+        const response = await api.post<any>('/classes', data);
         return response.data.data;
     },
 
@@ -40,7 +38,7 @@ export const classApi = {
      * Update an existing class
      */
     async update(id: string, data: UpdateClassDto): Promise<Class> {
-        const response = await api.put<any>(`${BASE_PATH}/${id}`, data);
+        const response = await api.put<any>(`/classes/${id}`, data);
         return response.data.data;
     },
 
@@ -48,14 +46,14 @@ export const classApi = {
      * Delete a class
      */
     async delete(id: string): Promise<void> {
-        await api.delete(`${BASE_PATH}/${id}`);
+        await api.delete(`/classes/${id}`);
     },
 
     /**
      * Assign a teacher to a class
      */
     async assignTeacher(classId: string, teacherId: string): Promise<Class> {
-        const response = await api.put<any>(`${BASE_PATH}/${classId}/assign-teacher`, { teacherId });
+        const response = await api.put<any>(`/classes/${classId}/assign-teacher`, { teacherId });
         return response.data.data;
     }
 };

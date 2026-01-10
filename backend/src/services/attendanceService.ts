@@ -3,7 +3,7 @@ import ApiError from '../utils/ApiError';
 import { AttendanceRecordDto } from '../dtos/attendance.dto';
 
 export async function markAttendance(sessionId: string, records: AttendanceRecordDto[], requesterRole: string, requesterId: string) {
-    // 1. Verify Session exists
+    // Verify Session exists
     const session = await prisma.session.findUnique({
         where: { id: sessionId },
         include: { class: { include: { students: true } } }

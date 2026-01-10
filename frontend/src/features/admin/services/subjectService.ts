@@ -1,9 +1,7 @@
 import { api } from '../../../api/axios';
 import type { Subject, CreateSubjectDto, UpdateSubjectDto, SubjectFilters, SubjectResponse } from '../types/subject.types';
 
-const BASE_PATH = '/subjects';
-
-export const subjectApi = {
+export const subjectService = {
     /**
      * Get all subjects with optional filters and pagination
      */
@@ -16,7 +14,7 @@ export const subjectApi = {
         if (filters?.page) params.append('page', filters.page.toString());
         if (filters?.limit) params.append('limit', filters.limit.toString());
 
-        const response = await api.get<any>(`${BASE_PATH}?${params.toString()}`);
+        const response = await api.get<any>(`/subjects?${params.toString()}`);
         return response.data.data;
     },
 
@@ -24,7 +22,7 @@ export const subjectApi = {
      * Get a single subject by ID
      */
     async getById(id: string): Promise<Subject> {
-        const response = await api.get<any>(`${BASE_PATH}/${id}`);
+        const response = await api.get<any>(`/subjects/${id}`);
         return response.data.data;
     },
 
@@ -32,7 +30,7 @@ export const subjectApi = {
      * Create a new subject
      */
     async create(data: CreateSubjectDto): Promise<Subject> {
-        const response = await api.post<any>(BASE_PATH, data);
+        const response = await api.post<any>('/subjects', data);
         return response.data.data;
     },
 
@@ -40,7 +38,7 @@ export const subjectApi = {
      * Update an existing subject
      */
     async update(id: string, data: UpdateSubjectDto): Promise<Subject> {
-        const response = await api.put<any>(`${BASE_PATH}/${id}`, data);
+        const response = await api.put<any>(`/subjects/${id}`, data);
         return response.data.data;
     },
 
@@ -48,6 +46,6 @@ export const subjectApi = {
      * Delete a subject
      */
     async delete(id: string): Promise<void> {
-        await api.delete(`${BASE_PATH}/${id}`);
+        await api.delete(`/subjects/${id}`);
     }
 };

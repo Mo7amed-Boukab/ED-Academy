@@ -7,6 +7,9 @@ const router = Router();
 // Toutes les routes nécessitent une authentification
 router.use(authenticateToken);
 
+// Routes accessibles aux TEACHERS
+router.get('/my-classes', authorizeRoles(['TEACHER']), ClassController.getMyClasses);
+
 // Routes accessibles uniquement aux ADMIN
 router.post('/', authorizeRoles(['ADMIN']), ClassController.create);
 router.put('/:id', authorizeRoles(['ADMIN']), ClassController.update);

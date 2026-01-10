@@ -9,7 +9,7 @@ import {
   GraduationCap,
   BookOpen,
 } from "lucide-react";
-import { statsApi } from "../../services/stats.api";
+import { statsService } from "../../services/statsService";
 import { CustomSelect } from "../../../../components/CustomSelect";
 
 // Types for absence data
@@ -42,7 +42,7 @@ export const AdminOverview = () => {
   useEffect(() => {
     const fetchStats = async () => {
       try {
-        const data = await statsApi.getGlobal();
+        const data = await statsService.getGlobal();
         setStats(data);
       } catch (error) {
         console.error("Failed to fetch stats", error);

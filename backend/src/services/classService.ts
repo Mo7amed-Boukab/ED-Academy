@@ -70,6 +70,12 @@ export async function getAllClasses(
             email: true,
           },
         },
+        subjects: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
         _count: {
           select: { students: true },
         },
@@ -101,6 +107,9 @@ export async function getClassById(id: string) {
       },
       students: {
         select: { id: true, fullName: true, email: true },
+      },
+      subjects: {
+        select: { id: true, name: true },
       },
     },
   });
@@ -194,4 +203,63 @@ export async function deleteClass(id: string): Promise<void> {
   }
 
   await prisma.class.delete({ where: { id } });
+}
+
+export async function getTeacherClasses(
+  teacherId: string,
+  filters?: { level?: string; search?: string },
+  page = 1,
+  limit = 100
+) {
+  const where: Prisma.ClassWhereInput = {
+    teacherId: teacherId,
+  };
+
+  if (filters?.level) {
+    where.level = filters.level;
+  }
+
+  if (filters?.search) {
+    where.OR = [
+      { name: { contains: filters.search, mode: "insensitive" } },
+      {
+        subjects: {
+          some: { name: { contains: filters.search, mode: "insensitive" } },
+        },
+      },
+    ];
+  }
+
+  const skip = (page - 1) * limit;
+
+  const [classes, total] = await Promise.all([
+    prisma.class.findMany({
+      where,
+      include: {
+        subjects: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
+        _count: {
+          select: { students: true },
+        },
+      },
+      orderBy: { createdAt: "desc" },
+      skip,
+      take: limit,
+    }),
+    prisma.class.count({ where }),
+  ]);
+
+  return {
+    data: classes,
+    meta: {
+      total,
+      page,
+      limit,
+      totalPages: Math.ceil(total / limit),
+    },
+  };
 }
