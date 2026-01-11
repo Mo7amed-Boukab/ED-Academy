@@ -76,3 +76,39 @@ export async function getGlobalStats() {
         totalSessions
     };
 }
+
+export async function getTeacherStats(teacherId: string) {
+    const classes = await prisma.class.findMany({
+        where: { teacherId },
+        include: { _count: { select: { students: true } } }
+    });
+    const totalClasses = classes.length;
+    const totalStudents = classes.reduce((acc, c) => acc + c._count.students, 0);
+
+    const now = new Date();
+    const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const endOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);
+
+    const todaySessions = await prisma.session.count({
+        where: {
+            class: { teacherId },
+            date: { gte: startOfDay, lt: endOfDay }
+        }
+    });
+
+    // Determine pending attendance: Sessions in the past (including today) that have NO attendance records
+    const pendingAttendance = await prisma.session.count({
+        where: {
+            class: { teacherId },
+            date: { lt: endOfDay },
+            attendances: { none: {} }
+        }
+    });
+
+    return {
+        totalClasses,
+        totalStudents,
+        todaySessions,
+        pendingAttendance
+    };
+}

@@ -8,13 +8,15 @@ import {
   Users,
   GraduationCap,
   BookOpen,
+  Loader2
 } from "lucide-react";
 import { statsService } from "../../services/statsService";
+import { attendanceService, type AttendanceSession } from "../../../teacher/services/attendanceService";
 import { CustomSelect } from "../../../../components/CustomSelect";
+import type { GlobalStats } from "../../types/stats.types";
 
-// Types for absence data
 interface AbsentStudent {
-  id: number;
+  id: string;
   name: string;
   justified: boolean;
 }
@@ -25,12 +27,24 @@ interface DayAbsences {
 }
 
 export const AdminOverview = () => {
-  const [stats, setStats] = useState({
+  const [stats, setStats] = useState<GlobalStats>({
     totalStudents: 0,
     totalTeachers: 0,
     totalClasses: 0,
     totalSessions: 0,
   });
+
+  const [allSessions, setAllSessions] = useState<AttendanceSession[]>([]);
+
+  const [attendanceData, setAttendanceData] = useState({
+    present: 0,
+    absent: 0,
+    lateJustified: 0,
+    total: 0,
+  });
+
+  const [absenceData, setAbsenceData] = useState<Record<number, AbsentStudent[]>>({});
+
   const [loading, setLoading] = useState(true);
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [selectedDay, setSelectedDay] = useState<DayAbsences | null>(null);
@@ -39,11 +53,17 @@ export const AdminOverview = () => {
     new Date().toISOString().split("T")[0]
   );
 
+  // 1. Initial Fetch
   useEffect(() => {
     const fetchStats = async () => {
       try {
-        const data = await statsService.getGlobal();
-        setStats(data);
+        setLoading(true);
+        const [globalStats, sessions] = await Promise.all([
+          statsService.getGlobal(),
+          attendanceService.getTeacherAttendance()
+        ]);
+        setStats(globalStats);
+        setAllSessions(sessions);
       } catch (error) {
         console.error("Failed to fetch stats", error);
       } finally {
@@ -52,6 +72,65 @@ export const AdminOverview = () => {
     };
     fetchStats();
   }, []);
+
+  // 2. Filter Effect
+  useEffect(() => {
+    const todayStr = new Date().toISOString().split('T')[0];
+    const targetDateStr = selectedDate || todayStr;
+
+    const filtered = allSessions.filter(s => {
+      const sDate = s.date.includes('T') ? s.date.split('T')[0] : s.date;
+      return sDate === targetDateStr && (selectedClass === "all" || s.class === selectedClass);
+    });
+
+    let present = 0;
+    let absent = 0;
+    let lateJustified = 0;
+    let total = 0;
+
+    filtered.forEach(session => {
+      session.students.forEach(student => {
+        total++;
+        if (student.status === 'PRESENT') present++;
+        else if (student.status === 'ABSENT') {
+          if (student.justification === 'justified') lateJustified++;
+          else absent++;
+        } else if (student.status === 'LATE') lateJustified++;
+      });
+    });
+
+    setAttendanceData({ present, absent, lateJustified, total });
+  }, [allSessions, selectedDate, selectedClass]);
+
+  // 3. Calendar Effect
+  useEffect(() => {
+    const monthAbsences: Record<number, AbsentStudent[]> = {};
+    const currentYear = currentMonth.getFullYear();
+    const currentMonthIndex = currentMonth.getMonth();
+
+    allSessions.forEach(session => {
+      const sDateStr = session.date.includes('T') ? session.date.split('T')[0] : session.date;
+      const [y, m, d] = sDateStr.split('-').map(Number);
+
+      if (y === currentYear && (m - 1) === currentMonthIndex) {
+        const day = d;
+        session.students.forEach(student => {
+          if (student.status === 'ABSENT') {
+            if (!monthAbsences[day]) monthAbsences[day] = [];
+            const exists = monthAbsences[day].find(s => s.id === student.id);
+            if (!exists) {
+              monthAbsences[day].push({
+                id: student.id,
+                name: student.name,
+                justified: student.justification === 'justified'
+              });
+            }
+          }
+        });
+      }
+    });
+    setAbsenceData(monthAbsences);
+  }, [allSessions, currentMonth]);
 
   // Calendar helpers
   const getDaysInMonth = (date: Date) => {
@@ -83,48 +162,24 @@ export const AdminOverview = () => {
     setSelectedDay(null);
   };
 
-  // Sample attendance data for pie chart
-  const attendanceData = {
-    present: 42,
-    absent: 8,
-    lateJustified: 4,
-    total: 54,
-  };
-
-  // Calculate percentages for pie chart
-  const presentPercent = (attendanceData.present / attendanceData.total) * 100;
-  const absentPercent = (attendanceData.absent / attendanceData.total) * 100;
+  // SVG arc calculation for pie chart
+  const totalStudentsForChart = attendanceData.total || 1;
+  const presentPercent = (attendanceData.present / totalStudentsForChart) * 100;
+  const absentPercent = (attendanceData.absent / totalStudentsForChart) * 100;
   const lateJustifiedPercent =
-    (attendanceData.lateJustified / attendanceData.total) * 100;
+    (attendanceData.lateJustified / totalStudentsForChart) * 100;
 
-  // Sample absence data for calendar
-  const absenceData: Record<number, AbsentStudent[]> = {
-    2: [
-      { id: 1, name: "Ahmed Ben Ali", justified: true },
-      { id: 2, name: "Sara Mansouri", justified: false },
-    ],
-    5: [{ id: 3, name: "Mohamed Karim", justified: false }],
-    8: [
-      { id: 4, name: "Fatima Zahra", justified: true },
-      { id: 5, name: "Youssef Amrani", justified: true },
-      { id: 6, name: "Leila Bennani", justified: false },
-    ],
-    12: [
-      { id: 7, name: "Omar Hassan", justified: false },
-      { id: 8, name: "Nadia Tazi", justified: false },
-    ],
-    15: [{ id: 9, name: "Karim Idrissi", justified: true }],
-    19: [
-      { id: 10, name: "Amina Berrada", justified: false },
-      { id: 11, name: "Rachid Alaoui", justified: true },
-    ],
-    23: [{ id: 12, name: "Salma Chraibi", justified: false }],
-    27: [
-      { id: 13, name: "Hassan Filali", justified: true },
-      { id: 14, name: "Zineb Kettani", justified: false },
-      { id: 15, name: "Mehdi Benjelloun", justified: true },
-    ],
-  };
+  const circumference = 2 * Math.PI * 40;
+  const presentArc = (presentPercent / 100) * circumference;
+  const absentArc = (absentPercent / 100) * circumference;
+  const lateJustifiedArc = (lateJustifiedPercent / 100) * circumference;
+
+  // Dynamic Class Options
+  const uniqueClasses = Array.from(new Set(allSessions.map(s => s.class))).sort();
+  const classOptions = [
+    { value: "all", label: "Toutes les classes" },
+    ...uniqueClasses.map(c => ({ value: c, label: c }))
+  ];
 
   // Get absence status for a day
   const getAbsenceStatus = (
@@ -151,19 +206,13 @@ export const AdminOverview = () => {
     }
   };
 
-  // Class options for filter
-  const classOptions = [
-    { value: "all", label: "Toutes les classes" },
-    { value: "1", label: "Classe 1ère Année" },
-    { value: "2", label: "Classe 2ème Année" },
-    { value: "3", label: "Classe 3ème Année" },
-  ];
-
-  // SVG arc calculation for pie chart
-  const circumference = 2 * Math.PI * 40;
-  const presentArc = (presentPercent / 100) * circumference;
-  const absentArc = (absentPercent / 100) * circumference;
-  const lateJustifiedArc = (lateJustifiedPercent / 100) * circumference;
+  if (loading && !stats.totalStudents) {
+    return (
+      <div className="flex justify-center items-center h-64">
+        <Loader2 className="animate-spin text-[var(--primary)]" size={32} />
+      </div>
+    );
+  }
 
   return (
     <div className="animate-fadeIn">
@@ -184,7 +233,7 @@ export const AdminOverview = () => {
                   Total Étudiants
                 </p>
                 <p className="text-2xl text-gray-900 mt-1">
-                  {loading ? "..." : stats.totalStudents.toLocaleString()}
+                  {stats.totalStudents.toLocaleString()}
                 </p>
               </div>
               <div className="flex flex-col items-center text-center py-3 border-l border-gray-100">
@@ -195,7 +244,7 @@ export const AdminOverview = () => {
                   Total Enseignants
                 </p>
                 <p className="text-2xl text-gray-900 mt-1">
-                  {loading ? "..." : stats.totalTeachers.toLocaleString()}
+                  {stats.totalTeachers.toLocaleString()}
                 </p>
               </div>
               <div className="flex flex-col items-center text-center py-3 border-l border-gray-100">
@@ -206,7 +255,7 @@ export const AdminOverview = () => {
                   Total Classes
                 </p>
                 <p className="text-2xl text-gray-900 mt-1">
-                  {loading ? "..." : stats.totalClasses.toLocaleString()}
+                  {stats.totalClasses.toLocaleString()}
                 </p>
               </div>
               <div className="flex flex-col items-center text-center py-3 border-l border-gray-100">
@@ -217,7 +266,7 @@ export const AdminOverview = () => {
                   Total Sessions
                 </p>
                 <p className="text-2xl text-gray-900 mt-1">
-                  {loading ? "..." : stats.totalSessions.toLocaleString()}
+                  {stats.totalSessions.toLocaleString()}
                 </p>
               </div>
             </div>
@@ -440,37 +489,31 @@ export const AdminOverview = () => {
                       onClick={() => handleDayClick(day)}
                       className={`
                                                 py-2 text-sm cursor-pointer transition-colors relative
-                                                ${
-                                                  isSelected
-                                                    ? "ring-2 ring-[#c41e3a] ring-offset-1"
-                                                    : ""
-                                                }
-                                                ${
-                                                  isToday && !hasAbsences
-                                                    ? "bg-gray-200 font-medium"
-                                                    : ""
-                                                }
-                                                ${
-                                                  absenceStatus === "justified"
-                                                    ? "bg-green-100 text-green-700"
-                                                    : ""
-                                                }
-                                                ${
-                                                  absenceStatus ===
-                                                  "unjustified"
-                                                    ? "bg-red-100 text-[#c41e3a]"
-                                                    : ""
-                                                }
-                                                ${
-                                                  absenceStatus === "mixed"
-                                                    ? "bg-orange-100 text-orange-700"
-                                                    : ""
-                                                }
-                                                ${
-                                                  !hasAbsences && !isToday
-                                                    ? "hover:bg-gray-50 text-gray-700"
-                                                    : ""
-                                                }
+                                                ${isSelected
+                          ? "ring-2 ring-[#c41e3a] ring-offset-1"
+                          : ""
+                        }
+                                                ${isToday && !hasAbsences
+                          ? "bg-gray-200 font-medium"
+                          : ""
+                        }
+                                                ${absenceStatus === "justified"
+                          ? "bg-green-100 text-green-700"
+                          : ""
+                        }
+                                                ${absenceStatus ===
+                          "unjustified"
+                          ? "bg-red-100 text-[#c41e3a]"
+                          : ""
+                        }
+                                                ${absenceStatus === "mixed"
+                          ? "bg-orange-100 text-orange-700"
+                          : ""
+                        }
+                                                ${!hasAbsences && !isToday
+                          ? "hover:bg-gray-50 text-gray-700"
+                          : ""
+                        }
                                             `}
                     >
                       {day}
@@ -517,11 +560,10 @@ export const AdminOverview = () => {
                           {student.name}
                         </span>
                         <span
-                          className={`text-xs px-2 py-0.5 ${
-                            student.justified
-                              ? "bg-green-100 text-green-700"
-                              : "bg-red-100 text-[#c41e3a]"
-                          }`}
+                          className={`text-xs px-2 py-0.5 ${student.justified
+                            ? "bg-green-100 text-green-700"
+                            : "bg-red-100 text-[#c41e3a]"
+                            }`}
                         >
                           {student.justified ? "Justifié" : "Non justifié"}
                         </span>
@@ -542,8 +584,6 @@ export const AdminOverview = () => {
             </div>
           </div>
         </div>
-
-        {/* SUMMARY STATS SECTION */}
       </div>
     </div>
   );

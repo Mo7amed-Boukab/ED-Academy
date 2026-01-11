@@ -1,5 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
-import { getStudentAttendanceRate, getClassAttendanceStats, getGlobalStats } from '../services/statsService';
+import { getStudentAttendanceRate, getClassAttendanceStats, getGlobalStats, getTeacherStats } from '../services/statsService';
 import { ApiResponse } from '../utils/ApiResponse';
 import ApiError from '../utils/ApiError';
 import { AuthRequest } from '../middlewares/authMiddleware';
@@ -36,6 +36,16 @@ export class StatsController {
         try {
             const stats = await getGlobalStats();
             ApiResponse.success(res, stats, 'Global stats retrieved');
+        } catch (err: any) {
+            next(err instanceof ApiError ? err : ApiError.internal(err.message));
+        }
+    }
+
+    static async getTeacherStats(req: AuthRequest, res: Response, next: NextFunction) {
+        try {
+            const { userId } = req.user!;
+            const stats = await getTeacherStats(userId);
+            ApiResponse.success(res, stats, 'Teacher stats retrieved');
         } catch (err: any) {
             next(err instanceof ApiError ? err : ApiError.internal(err.message));
         }

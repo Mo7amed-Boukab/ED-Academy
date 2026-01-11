@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   ChevronLeft,
   ChevronRight,
@@ -9,12 +9,16 @@ import {
   Calendar,
   GraduationCap,
   BookOpen,
+  Loader2
 } from "lucide-react";
 import { CustomSelect } from "../../../../components/CustomSelect";
+import { statsService } from "../../../admin/services/statsService";
+import { attendanceService, type AttendanceSession } from "../../services/attendanceService";
+import type { TeacherStats } from "../../../admin/types/stats.types";
 
 // Types for absence data
 interface AbsentStudent {
-  id: number;
+  id: string;
   name: string;
   justified: boolean;
 }
@@ -31,6 +35,115 @@ export const TeacherDashboard = () => {
   const [selectedDate, setSelectedDate] = useState<string>(
     new Date().toISOString().split("T")[0]
   );
+
+  const [loading, setLoading] = useState(true);
+  const [teacherStats, setTeacherStats] = useState<TeacherStats>({
+    totalClasses: 0,
+    totalStudents: 0,
+    todaySessions: 0,
+    pendingAttendance: 0,
+  });
+
+  // Store all sessions to avoid re-fetching
+  const [allSessions, setAllSessions] = useState<AttendanceSession[]>([]);
+
+  const [attendanceData, setAttendanceData] = useState({
+    present: 0,
+    absent: 0,
+    lateJustified: 0,
+    total: 0,
+  });
+
+  const [absenceData, setAbsenceData] = useState<Record<number, AbsentStudent[]>>({});
+
+  // 1. Initial Fetch
+  useEffect(() => {
+    const loadData = async () => {
+      setLoading(true);
+      try {
+        const [tStats, sessions] = await Promise.all([
+          statsService.getTeacherStats(),
+          attendanceService.getTeacherAttendance()
+        ]);
+        setTeacherStats(tStats);
+        setAllSessions(sessions);
+      } catch (error) {
+        console.error("Failed to fetch dashboard data", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    loadData();
+  }, []);
+
+  // 2. Filter Effect (Charts)
+  useEffect(() => {
+    const todayStr = new Date().toISOString().split('T')[0];
+    const targetDateStr = selectedDate || todayStr;
+
+    const filtered = allSessions.filter(s => {
+      const sDate = s.date.includes('T') ? s.date.split('T')[0] : s.date;
+      return sDate === targetDateStr && (selectedClass === "all" || s.class === selectedClass);
+    });
+
+    let present = 0;
+    let absent = 0;
+    let lateJustified = 0;
+    let total = 0;
+
+    filtered.forEach(session => {
+      session.students.forEach(student => {
+        total++;
+        if (student.status === 'PRESENT') {
+          present++;
+        } else if (student.status === 'ABSENT') {
+          if (student.justification === 'justified') {
+            lateJustified++;
+          } else {
+            absent++;
+          }
+        } else if (student.status === 'LATE') {
+          lateJustified++;
+        }
+      });
+    });
+
+    setAttendanceData({ present, absent, lateJustified, total });
+  }, [allSessions, selectedDate, selectedClass]);
+
+  // 3. Calendar Effect
+  useEffect(() => {
+    const monthAbsences: Record<number, AbsentStudent[]> = {};
+    const currentYear = currentMonth.getFullYear();
+    const currentMonthIndex = currentMonth.getMonth();
+
+    allSessions.forEach(session => {
+      const sDateStr = session.date.includes('T') ? session.date.split('T')[0] : session.date;
+      const [y, m, d] = sDateStr.split('-').map(Number);
+
+      // Check if session is in current month view
+      // m is 1-based from string splitting
+      if (y === currentYear && (m - 1) === currentMonthIndex) {
+        const day = d;
+
+        session.students.forEach(student => {
+          if (student.status === 'ABSENT') {
+            if (!monthAbsences[day]) monthAbsences[day] = [];
+
+            const exists = monthAbsences[day].find(s => s.id === student.id);
+            if (!exists) {
+              monthAbsences[day].push({
+                id: student.id,
+                name: student.name,
+                justified: student.justification === 'justified'
+              });
+            }
+          }
+        });
+      }
+    });
+    setAbsenceData(monthAbsences);
+  }, [allSessions, currentMonth]);
 
   // Calendar helpers
   const getDaysInMonth = (date: Date) => {
@@ -62,39 +175,17 @@ export const TeacherDashboard = () => {
     setSelectedDay(null);
   };
 
-  // Sample attendance data for pie chart
-  const attendanceData = {
-    present: 28,
-    absent: 4,
-    lateJustified: 2,
-    total: 34,
-  };
+  // Calculate percentages and arcs
+  const total = attendanceData.total || 1;
+  const presentPercent = (attendanceData.present / total) * 100;
+  const absentPercent = (attendanceData.absent / total) * 100;
+  const lateJustifiedPercent = (attendanceData.lateJustified / total) * 100;
 
-  // Calculate percentages for pie chart
-  const presentPercent = (attendanceData.present / attendanceData.total) * 100;
-  const absentPercent = (attendanceData.absent / attendanceData.total) * 100;
-  const lateJustifiedPercent =
-    (attendanceData.lateJustified / attendanceData.total) * 100;
+  const circumference = 2 * Math.PI * 40;
+  const presentArc = (presentPercent / 100) * circumference;
+  const absentArc = (absentPercent / 100) * circumference;
+  const lateJustifiedArc = (lateJustifiedPercent / 100) * circumference;
 
-  // Sample absence data for calendar
-  const absenceData: Record<number, AbsentStudent[]> = {
-    2: [
-      { id: 1, name: "Alice Martin", justified: true },
-      { id: 2, name: "Bob Colin", justified: false },
-    ],
-    5: [{ id: 3, name: "Charlie Durand", justified: false }],
-    8: [
-      { id: 4, name: "Diane Lo", justified: true },
-      { id: 5, name: "Eve Peron", justified: true },
-    ],
-    15: [
-      { id: 6, name: "Alice Martin", justified: false },
-      { id: 7, name: "Charlie Durand", justified: false },
-    ],
-    22: [{ id: 8, name: "Bob Colin", justified: true }],
-  };
-
-  // Get absence status for a day
   const getAbsenceStatus = (
     day: number
   ): "justified" | "unjustified" | "mixed" | null => {
@@ -109,7 +200,6 @@ export const TeacherDashboard = () => {
     return "unjustified";
   };
 
-  // Handle day click
   const handleDayClick = (day: number) => {
     const absences = absenceData[day];
     if (absences && absences.length > 0) {
@@ -119,27 +209,20 @@ export const TeacherDashboard = () => {
     }
   };
 
-  // Class options for filter
+  // Dynamic Class Options
+  const uniqueClasses = Array.from(new Set(allSessions.map(s => s.class))).sort();
   const classOptions = [
     { value: "all", label: "Toutes mes classes" },
-    { value: "1", label: "Terminale S1" },
-    { value: "2", label: "1ère S2" },
-    { value: "3", label: "2nde 3" },
+    ...uniqueClasses.map(c => ({ value: c, label: c }))
   ];
 
-  // SVG arc calculation for pie chart
-  const circumference = 2 * Math.PI * 40;
-  const presentArc = (presentPercent / 100) * circumference;
-  const absentArc = (absentPercent / 100) * circumference;
-  const lateJustifiedArc = (lateJustifiedPercent / 100) * circumference;
-
-  // Teacher stats
-  const teacherStats = {
-    totalClasses: 4,
-    totalStudents: 128,
-    todaySessions: 3,
-    pendingAttendance: 1,
-  };
+  if (loading && !teacherStats.totalClasses) {
+    return (
+      <div className="flex justify-center items-center h-64">
+        <Loader2 className="animate-spin text-[var(--primary)]" size={32} />
+      </div>
+    );
+  }
 
   return (
     <div className="animate-fadeIn">
@@ -418,37 +501,31 @@ export const TeacherDashboard = () => {
                       onClick={() => handleDayClick(day)}
                       className={`
                                                 py-2 text-sm cursor-pointer transition-colors relative
-                                                ${
-                                                  isSelected
-                                                    ? "ring-2 ring-[#c41e3a] ring-offset-1"
-                                                    : ""
-                                                }
-                                                ${
-                                                  isToday && !hasAbsences
-                                                    ? "bg-gray-200 font-medium"
-                                                    : ""
-                                                }
-                                                ${
-                                                  absenceStatus === "justified"
-                                                    ? "bg-green-100 text-green-700"
-                                                    : ""
-                                                }
-                                                ${
-                                                  absenceStatus ===
-                                                  "unjustified"
-                                                    ? "bg-red-100 text-[#c41e3a]"
-                                                    : ""
-                                                }
-                                                ${
-                                                  absenceStatus === "mixed"
-                                                    ? "bg-orange-100 text-orange-700"
-                                                    : ""
-                                                }
-                                                ${
-                                                  !hasAbsences && !isToday
-                                                    ? "hover:bg-gray-50 text-gray-700"
-                                                    : ""
-                                                }
+                                                ${isSelected
+                          ? "ring-2 ring-[#c41e3a] ring-offset-1"
+                          : ""
+                        }
+                                                ${isToday && !hasAbsences
+                          ? "bg-gray-200 font-medium"
+                          : ""
+                        }
+                                                ${absenceStatus === "justified"
+                          ? "bg-green-100 text-green-700"
+                          : ""
+                        }
+                                                ${absenceStatus ===
+                          "unjustified"
+                          ? "bg-red-100 text-[#c41e3a]"
+                          : ""
+                        }
+                                                ${absenceStatus === "mixed"
+                          ? "bg-orange-100 text-orange-700"
+                          : ""
+                        }
+                                                ${!hasAbsences && !isToday
+                          ? "hover:bg-gray-50 text-gray-700"
+                          : ""
+                        }
                                             `}
                     >
                       {day}
@@ -495,11 +572,10 @@ export const TeacherDashboard = () => {
                           {student.name}
                         </span>
                         <span
-                          className={`text-xs px-2 py-0.5 ${
-                            student.justified
-                              ? "bg-green-100 text-green-700"
-                              : "bg-red-100 text-[#c41e3a]"
-                          }`}
+                          className={`text-xs px-2 py-0.5 ${student.justified
+                            ? "bg-green-100 text-green-700"
+                            : "bg-red-100 text-[#c41e3a]"
+                            }`}
                         >
                           {student.justified ? "Justifié" : "Non justifié"}
                         </span>
