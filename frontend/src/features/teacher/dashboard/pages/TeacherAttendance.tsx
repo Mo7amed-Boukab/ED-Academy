@@ -1,154 +1,108 @@
-import { useState } from "react";
-import { Check, X, Clock, Search } from "lucide-react";
+import { useState, useEffect } from "react";
+import { Check, X, Clock, Search, Loader2 } from "lucide-react";
 import { CustomSelect } from "../../../../components/CustomSelect";
+import { attendanceService, type AttendanceSession, type AttendanceStudent } from "../../services/attendanceService";
+import { useToast } from "../../../../hooks/useToast";
 
-// Types
-interface Student {
-  id: number;
-  name: string;
-  status: "PRESENT" | "ABSENT" | "LATE";
-  justification: "justified" | "not_justified" | null;
-}
-
-interface Session {
-  id: number;
-  time: string;
-  subject: string;
-  class: string;
-  level: string;
-  students: Student[];
-}
-
-// Mock Data - Sessions with attendance records (Teacher's sessions only)
-const MOCK_SESSIONS: Session[] = [
-  {
-    id: 1,
-    time: "08:00 – 10:00",
-    subject: "Mathématiques",
-    class: "Terminale S1",
-    level: "Terminal",
-    students: [
-      { id: 1, name: "Alice Martin", status: "PRESENT", justification: null },
-      { id: 2, name: "Bob Colin", status: "PRESENT", justification: null },
-      {
-        id: 3,
-        name: "Charlie Durand",
-        status: "ABSENT",
-        justification: "not_justified",
-      },
-    ],
-  },
-  {
-    id: 2,
-    time: "10:15 – 12:00",
-    subject: "Mathématiques",
-    class: "1ère S2",
-    level: "1ère",
-    students: [
-      { id: 4, name: "Diane Lo", status: "LATE", justification: "justified" },
-      { id: 5, name: "Eve Peron", status: "PRESENT", justification: null },
-      { id: 6, name: "Fabien Roux", status: "PRESENT", justification: null },
-    ],
-  },
-  {
-    id: 3,
-    time: "14:00 – 15:30",
-    subject: "Spécialité Maths",
-    class: "Terminale S2",
-    level: "Terminal",
-    students: [
-      {
-        id: 7,
-        name: "Georges Blanc",
-        status: "ABSENT",
-        justification: "justified",
-      },
-      { id: 8, name: "Hélène Petit", status: "PRESENT", justification: null },
-      { id: 9, name: "Ivan Dubois", status: "PRESENT", justification: null },
-    ],
-  },
-  {
-    id: 4,
-    time: "15:45 – 17:30",
-    subject: "Mathématiques",
-    class: "2nde 3",
-    level: "2nde",
-    students: [
-      { id: 10, name: "Julie Martin", status: "PRESENT", justification: null },
-      {
-        id: 11,
-        name: "Kevin Durand",
-        status: "LATE",
-        justification: "not_justified",
-      },
-      { id: 12, name: "Léa Bernard", status: "PRESENT", justification: null },
-    ],
-  },
-];
-
-// Extract unique values for filters
-const CLASSES = [...new Set(MOCK_SESSIONS.map((s) => s.class))];
-const SUBJECTS = [...new Set(MOCK_SESSIONS.map((s) => s.subject))];
-const STATUSES = ["All", "PRESENT", "ABSENT", "LATE"];
+// Use types from service but we can extend or alias if needed for local state
+type Session = AttendanceSession;
 
 export const TeacherAttendance = () => {
+  const toast = useToast();
   const [searchQuery, setSearchQuery] = useState("");
   const [classFilter, setClassFilter] = useState("");
   const [subjectFilter, setSubjectFilter] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
-  const [sessions, setSessions] = useState(MOCK_SESSIONS);
+
+  const [sessions, setSessions] = useState<Session[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [processingId, setProcessingId] = useState<string | null>(null);
+
+  // Fetch data
+  const fetchData = async () => {
+    try {
+      setLoading(true);
+      // Fetch all history (no date filter) to show previous days and today's sessions
+      const data = await attendanceService.getTeacherAttendance();
+      setSessions(data);
+    } catch (error) {
+      console.error("Error fetching attendance:", error);
+      toast.error("Failed to load attendance records");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchData();
+  }, []);
 
   // Update student status
-  const updateStudentStatus = (
-    sessionId: number,
-    studentId: number,
+  const updateStudentStatus = async (
+    sessionId: string,
+    studentId: string,
     status: "PRESENT" | "ABSENT" | "LATE"
   ) => {
-    setSessions((prev) =>
-      prev.map((session) => {
-        if (session.id === sessionId) {
-          return {
-            ...session,
-            students: session.students.map((student) =>
-              student.id === studentId
-                ? {
-                    ...student,
-                    status,
-                    // Reset justification when status changes to PRESENT
-                    justification:
-                      status === "PRESENT" ? null : student.justification,
-                  }
-                : student
-            ),
-          };
-        }
-        return session;
-      })
-    );
+    try {
+      // Call API
+      await attendanceService.markAttendance(sessionId, [
+        { studentId, status }
+      ]);
+
+      // Refresh data to get the new attendanceId and ensure sync
+      fetchData();
+
+    } catch (error) {
+      console.error("Error updating status:", error);
+      toast.error("Failed to update status");
+    }
   };
 
   // Update justification
-  const updateJustification = (
-    sessionId: number,
-    studentId: number,
+  const updateJustification = async (
+    sessionId: string,
+    studentId: string,
+    attendanceId: string,
     justification: "justified" | "not_justified"
   ) => {
-    setSessions((prev) =>
-      prev.map((session) => {
-        if (session.id === sessionId) {
-          return {
-            ...session,
-            students: session.students.map((student) =>
-              student.id === studentId ? { ...student, justification } : student
-            ),
-          };
-        }
-        return session;
-      })
-    );
-    // TODO: API call to save justification
-    // await api.updateAttendance(sessionId, studentId, { justification });
+    try {
+      setProcessingId(attendanceId);
+
+      // Optimistic update
+      setSessions((prev) =>
+        prev.map((session) => {
+          if (session.id === sessionId) {
+            return {
+              ...session,
+              students: session.students.map((student) =>
+                student.id === studentId ? { ...student, justification } : student
+              ),
+            };
+          }
+          return session;
+        })
+      );
+
+      // API call to save justification
+      // We need mapping to uppercase for backend if service doesn't handle it
+      // The service expects "JUSTIFIED" | "NOT_JUSTIFIED"
+      const backendJustification = justification === "justified" ? "JUSTIFIED" : "NOT_JUSTIFIED";
+
+      await attendanceService.updateJustification(attendanceId, backendJustification);
+
+    } catch (error) {
+      console.error("Error updating justification:", error);
+      toast.error("Failed to update justification");
+      fetchData();
+    } finally {
+      setProcessingId(null);
+    }
   };
+
+  // Extract unique values for filters
+  const classes = [...new Set(sessions.map((s) => s.class))];
+  const subjects = [...new Set(sessions.map((s) => s.subject))];
+  const statuses = ["All", "PRESENT", "ABSENT", "LATE"];
 
   // Filter sessions and students
   const filteredSessions = sessions
@@ -190,6 +144,14 @@ export const TeacherAttendance = () => {
     0
   );
 
+  if (loading) {
+    return (
+      <div className="flex justify-center items-center h-64">
+        <Loader2 className="animate-spin text-[var(--primary)]" size={32} />
+      </div>
+    );
+  }
+
   return (
     <div className="animate-fadeIn">
       <div className="page-container">
@@ -214,7 +176,7 @@ export const TeacherAttendance = () => {
                 onChange={setClassFilter}
                 options={[
                   { value: "", label: "All Classes" },
-                  ...CLASSES.map((c) => ({ value: c, label: c })),
+                  ...classes.map((c) => ({ value: c, label: c })),
                 ]}
                 placeholder="All Classes"
               />
@@ -227,7 +189,7 @@ export const TeacherAttendance = () => {
                 onChange={setSubjectFilter}
                 options={[
                   { value: "", label: "All Subjects" },
-                  ...SUBJECTS.map((s) => ({ value: s, label: s })),
+                  ...subjects.map((s) => ({ value: s, label: s })),
                 ]}
                 placeholder="All Subjects"
               />
@@ -238,7 +200,7 @@ export const TeacherAttendance = () => {
               <CustomSelect
                 value={statusFilter}
                 onChange={setStatusFilter}
-                options={STATUSES.map((s) => ({
+                options={statuses.map((s) => ({
                   value: s === "All" ? "" : s,
                   label: s,
                 }))}
@@ -287,15 +249,15 @@ export const TeacherAttendance = () => {
             <table className="data-table">
               <thead>
                 <tr>
-                  <th style={{ width: "110px" }}>Time</th>
+                  <th style={{ width: "120px" }}>Time</th>
                   <th>Student</th>
                   <th>Class</th>
                   <th className="hide-mobile">Level</th>
                   <th className="hide-tablet">Subject</th>
-                  <th className="text-center" style={{ minWidth: "160px" }}>
+                  <th className="pl-4" style={{ minWidth: "160px" }}>
                     Status
                   </th>
-                  <th className="text-center" style={{ minWidth: "140px" }}>
+                  <th className="pl-4" style={{ minWidth: "130px" }}>
                     Justification
                   </th>
                 </tr>
@@ -356,8 +318,8 @@ export const TeacherAttendance = () => {
                         </td>
 
                         {/* Status Buttons */}
-                        <td data-label="Status" className="no-label">
-                          <div className="attendance-status-btns justify-center">
+                        <td data-label="Status" className="no-label pl-4">
+                          <div className="attendance-status-btns">
                             <button
                               onClick={() =>
                                 updateStudentStatus(
@@ -366,11 +328,10 @@ export const TeacherAttendance = () => {
                                   "PRESENT"
                                 )
                               }
-                              className={`status-btn ${
-                                student.status === "PRESENT"
-                                  ? "present"
-                                  : "inactive"
-                              }`}
+                              className={`status-btn ${student.status === "PRESENT"
+                                ? "present"
+                                : "inactive"
+                                }`}
                             >
                               <Check size={12} />P
                             </button>
@@ -382,11 +343,10 @@ export const TeacherAttendance = () => {
                                   "ABSENT"
                                 )
                               }
-                              className={`status-btn ${
-                                student.status === "ABSENT"
-                                  ? "absent"
-                                  : "inactive"
-                              }`}
+                              className={`status-btn ${student.status === "ABSENT"
+                                ? "absent"
+                                : "inactive"
+                                }`}
                             >
                               <X size={12} />A
                             </button>
@@ -398,9 +358,8 @@ export const TeacherAttendance = () => {
                                   "LATE"
                                 )
                               }
-                              className={`status-btn ${
-                                student.status === "LATE" ? "late" : "inactive"
-                              }`}
+                              className={`status-btn ${student.status === "LATE" ? "late" : "inactive"
+                                }`}
                             >
                               <Clock size={12} />L
                             </button>
@@ -408,7 +367,7 @@ export const TeacherAttendance = () => {
                         </td>
 
                         {/* Justification Column */}
-                        <td data-label="Justification" className="text-center">
+                        <td data-label="Justification" className="pl-4">
                           {student.status === "PRESENT" ? (
                             <span className="text-[var(--text-muted)] text-sm">
                               —
@@ -416,23 +375,25 @@ export const TeacherAttendance = () => {
                           ) : (
                             <div
                               style={{ minWidth: "120px" }}
-                              className={`justification-select ${
-                                student.justification === "justified"
-                                  ? "justified"
-                                  : student.justification === "not_justified"
+                              className={`justification-select ${student.justification === "justified"
+                                ? "justified"
+                                : student.justification === "not_justified"
                                   ? "not-justified"
                                   : ""
-                              }`}
+                                }`}
                             >
                               <CustomSelect
                                 value={student.justification || ""}
-                                onChange={(value) =>
-                                  updateJustification(
-                                    session.id,
-                                    student.id,
-                                    value as "justified" | "not_justified"
-                                  )
-                                }
+                                onChange={(value) => {
+                                  if (student.attendanceId) {
+                                    updateJustification(
+                                      session.id,
+                                      student.id,
+                                      student.attendanceId,
+                                      value as "justified" | "not_justified"
+                                    );
+                                  }
+                                }}
                                 options={[
                                   { value: "justified", label: "Justified" },
                                   {
@@ -441,6 +402,7 @@ export const TeacherAttendance = () => {
                                   },
                                 ]}
                                 placeholder="Select..."
+                                disabled={processingId === student.attendanceId}
                               />
                             </div>
                           )}

@@ -23,6 +23,11 @@ enum AttendanceStatus {
   LATE
 }
 
+enum Justification {
+  JUSTIFIED
+  NOT_JUSTIFIED
+}
+
 /*--------------------
    USER
  --------------------- */
@@ -120,8 +125,9 @@ model Session {
  --------------------- */
 
 model Attendance {
-  id     String @id @default(uuid()) @db.Uuid
-  status AttendanceStatus
+  id            String           @id @default(uuid()) @db.Uuid
+  status        AttendanceStatus
+  justification Justification?
 
   sessionId String  @db.Uuid
   session   Session @relation(fields: [sessionId], references: [id])

@@ -238,6 +238,7 @@ body {
 
 /* Mobile Card Layout for Tables */
 @media (max-width: 767px) {
+
   .card:has(.table-responsive-wrapper),
   .card:has(.data-table) {
     background: var(--bg-light);
@@ -618,9 +619,11 @@ body {
   .action-menu {
     display: none !important;
   }
+
   .action-menu-cell {
     display: none !important;
   }
+
   .action-btns-desktop {
     display: flex !important;
   }
@@ -633,9 +636,11 @@ body {
     top: 10px;
     right: 10px;
   }
+
   .action-btns-desktop {
     display: none !important;
   }
+
   .action-menu-backdrop {
     display: block;
     position: fixed;
@@ -646,6 +651,7 @@ body {
     background: rgba(0, 0, 0, 0.3);
     z-index: 99;
   }
+
   .action-menu-dropdown {
     position: fixed;
     top: auto;
@@ -659,6 +665,7 @@ body {
     padding-bottom: env(safe-area-inset-bottom, 20px);
     animation: slideUp 0.2s ease;
   }
+
   .action-menu-dropdown::before {
     content: "";
     display: block;
@@ -668,6 +675,7 @@ body {
     border-radius: 2px;
     margin: 12px auto 8px;
   }
+
   .action-menu-item {
     padding: 14px 20px;
     font-size: 15px;
@@ -731,6 +739,7 @@ body {
   from {
     opacity: 0;
   }
+
   to {
     opacity: 1;
   }
@@ -740,6 +749,7 @@ body {
   from {
     transform: translateY(100%);
   }
+
   to {
     transform: translateY(0);
   }
@@ -749,6 +759,7 @@ body {
   from {
     transform: rotate(0deg);
   }
+
   to {
     transform: rotate(360deg);
   }
@@ -831,21 +842,25 @@ body {
   .page-container {
     padding: 16px;
   }
+
   .btn {
     min-height: 40px;
     padding: 9px 14px;
     font-size: 12px;
   }
+
   .btn-sm {
     min-height: 34px;
     padding: 7px 12px;
     font-size: 11px;
   }
+
   .form-input {
     min-height: 38px;
     padding: 9px 12px;
     font-size: 16px;
   }
+
   .status-btn {
     padding: 7px 12px;
     font-size: 11px;
@@ -889,15 +904,18 @@ body {
   .filters-bar-left {
     width: 100%;
   }
-  .filters-bar-left > div:first-child {
+
+  .filters-bar-left>div:first-child {
     flex: 0 0 100%;
     width: 100%;
     margin-bottom: 12px;
   }
-  .filters-bar-left > div:not(:first-child) {
+
+  .filters-bar-left>div:not(:first-child) {
     flex: 1 1 0;
     min-width: 160px;
   }
+
   .filters-bar-actions {
     width: 100%;
     flex: 0 0 100%;
@@ -910,27 +928,33 @@ body {
   .filters-bar {
     gap: 12px;
   }
+
   .filters-bar-left {
     width: 100%;
     gap: 8px;
   }
-  .filters-bar-left > div:first-child {
+
+  .filters-bar-left>div:first-child {
     width: 100% !important;
     flex: 0 0 100%;
     margin-bottom: 8px;
   }
-  .filters-bar-left > div:not(:first-child) {
+
+  .filters-bar-left>div:not(:first-child) {
     flex: 1 1 0;
     min-width: 0;
   }
+
   .filters-bar-actions {
     width: 100%;
     justify-content: flex-start;
     margin-top: 8px;
   }
-  .filters-bar-actions > * {
+
+  .filters-bar-actions>* {
     flex: 1;
   }
+
   .w-full-mobile {
     width: 100% !important;
   }
@@ -952,6 +976,7 @@ body {
     gap: 4px;
     justify-content: flex-end;
   }
+
   .attendance-status-btns .status-btn {
     min-width: auto;
     padding: 6px 10px;
@@ -1014,6 +1039,7 @@ body {
     transform: translateX(100%);
     opacity: 0;
   }
+
   to {
     transform: translateX(0);
     opacity: 1;
@@ -1085,5 +1111,106 @@ body {
 
   .toast {
     min-width: auto;
+  }
+}
+
+/* ============================================
+   Attendance Status Buttons
+   ============================================ */
+.attendance-status-btns {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.status-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 4px 8px;
+  /* Reduced padding */
+  font-size: 12px;
+  font-weight: 500;
+  border-radius: 4px;
+  border: 1px solid var(--border-color);
+  cursor: pointer;
+  transition: all 0.15s ease;
+  background: var(--bg-white);
+  color: var(--text-muted);
+}
+
+.status-btn:hover {
+  background: var(--bg-light);
+}
+
+.status-btn.present {
+  background: var(--success);
+  border-color: var(--success);
+  color: white;
+}
+
+.status-btn.absent {
+  background: var(--danger);
+  border-color: var(--danger);
+  color: white;
+}
+
+.status-btn.late {
+  background: var(--text-secondary);
+  border-color: var(--text-secondary);
+  color: white;
+}
+
+.status-btn.inactive {
+  background: var(--bg-light);
+  border-color: var(--border-color);
+  color: var(--text-muted);
+}
+
+/* ============================================
+   Justification Select Colors
+   ============================================ */
+.justification-select {
+  display: flex;
+  justify-content: center;
+}
+
+.justification-select .custom-select-trigger {
+  min-width: 110px;
+  font-size: 12px;
+  height: 30px !important;
+  /* Reduced height */
+  padding-top: 0;
+  padding-bottom: 0;
+}
+
+.justification-select.justified .custom-select-trigger {
+  border-color: var(--success);
+  color: var(--success);
+  background: rgba(16, 185, 129, 0.05);
+}
+
+.justification-select.not-justified .custom-select-trigger {
+  border-color: var(--danger);
+  color: var(--danger);
+  background: rgba(233, 69, 96, 0.05);
+}
+
+/* Mobile: align justification select to right */
+@media (max-width: 767px) {
+  .data-table td[data-label="Justification"] {
+    justify-content: space-between;
+  }
+
+  .data-table td[data-label="Justification"] .justification-select {
+    justify-content: flex-end;
+  }
+
+  .data-table td[data-label="Status"] {
+    justify-content: space-between;
+  }
+
+  .data-table td[data-label="Status"] .attendance-status-btns {
+    justify-content: flex-end;
   }
 }

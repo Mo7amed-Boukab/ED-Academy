@@ -3,7 +3,7 @@ import { TeachersManagement } from '../features/admin/dashboard/pages/TeachersMa
 import { StudentsManagement } from '../features/admin/dashboard/pages/StudentsManagement';
 import { ClassesManagement } from '../features/admin/dashboard/pages/ClassesManagement';
 import { SubjectsManagement } from '../features/admin/dashboard/pages/SubjectsManagement';
-import { GlobalAttendance } from '../features/admin/dashboard/pages/GlobalAttendance';
+import { AdminAttendance } from '../features/admin/dashboard/pages/AdminAttendance';
 
 // Teacher Pages
 import { TeacherDashboard } from '../features/teacher/dashboard/pages/TeacherDashboard';
@@ -40,7 +40,7 @@ export const AppRouter = () => {
                             <Route path="/admin/students" element={<StudentsManagement />} />
                             <Route path="/admin/classes" element={<ClassesManagement />} />
                             <Route path="/admin/subjects" element={<SubjectsManagement />} />
-                            <Route path="/admin/attendance" element={<GlobalAttendance />} />
+                            <Route path="/admin/attendance" element={<AdminAttendance />} />
                             {/* Fallback */}
                             <Route path="/admin/users" element={<Navigate to="/admin/students" replace />} />
                         </Route>

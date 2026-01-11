@@ -1,6 +1,7 @@
 import prisma from '../config/prismaClient';
 import ApiError from '../utils/ApiError';
 import { AttendanceRecordDto } from '../dtos/attendance.dto';
+import { Justification } from '../generated/prisma/client';
 
 export async function markAttendance(sessionId: string, records: AttendanceRecordDto[], requesterRole: string, requesterId: string) {
     // Verify Session exists
@@ -22,7 +23,6 @@ export async function markAttendance(sessionId: string, records: AttendanceRecor
 
     const operations = records.map(record => {
         if (!classStudentIds.has(record.studentId)) {
-            // Strictly enforce that the student must belong to the session's class
             throw ApiError.badRequest(`Student with ID ${record.studentId} does not belong to the class of this session.`);
         }
 
@@ -33,11 +33,15 @@ export async function markAttendance(sessionId: string, records: AttendanceRecor
                     studentId: record.studentId
                 }
             },
-            update: { status: record.status },
+            update: {
+                status: record.status,
+                justification: record.justification || null
+            },
             create: {
                 sessionId,
                 studentId: record.studentId,
-                status: record.status
+                status: record.status,
+                justification: record.justification || null
             }
         });
     });
@@ -62,5 +66,111 @@ export async function getSessionAttendance(sessionId: string, requesterRole: str
                 select: { id: true, fullName: true, email: true }
             }
         }
+    });
+}
+
+export async function getTeacherSessionsAttendance(teacherId?: string, date?: string) {
+    try {
+        const whereClause: any = {};
+        if (teacherId) {
+            whereClause.teacherId = teacherId;
+        }
+
+        if (date) {
+            const targetDate = new Date(date);
+            const startOfDay = new Date(targetDate.getFullYear(), targetDate.getMonth(), targetDate.getDate());
+            const endOfDay = new Date(targetDate.getFullYear(), targetDate.getMonth(), targetDate.getDate() + 1);
+            whereClause.date = {
+                gte: startOfDay,
+                lt: endOfDay
+            };
+        }
+
+        const sessions = await prisma.session.findMany({
+            where: whereClause,
+            include: {
+                class: {
+                    include: {
+                        students: true
+                    }
+                },
+                subject: true,
+                attendances: true
+            },
+            orderBy: [{ date: 'desc' }, { startTime: 'desc' }]
+        });
+
+        // Transform to match frontend expectations
+        return sessions.map(session => {
+            // Map existing attendance records by student ID
+            const attendanceMap = new Map(session.attendances.map(a => [a.studentId, a]));
+
+            // Get all students in the class
+            const allStudents = session.class?.students || [];
+
+            // Merge class students with attendance records
+            const studentList = allStudents.map(student => {
+                const attendance = attendanceMap.get(student.id);
+
+                // Safe justification transformation
+                let justification: string | null = null;
+                if (attendance?.justification) {
+                    justification = String(attendance.justification).toLowerCase();
+                }
+
+                return {
+                    id: student.id,
+                    attendanceId: attendance?.id,
+                    name: student.fullName,
+                    email: student.email,
+                    status: attendance?.status || null,
+                    justification: justification
+                };
+            });
+
+            return {
+                id: session.id,
+                time: `${session.startTime} – ${session.endTime}`,
+                date: session.date,
+                subject: session.subject?.name || 'Unknown',
+                class: session.class?.name || 'Unknown',
+                level: session.class?.level || '',
+                students: studentList
+            };
+        });
+    } catch (error) {
+        console.error("Error in getTeacherSessionsAttendance:", error);
+        throw ApiError.internal("Failed to process attendance data");
+    }
+}
+
+export async function updateAttendanceJustification(
+    attendanceId: string,
+    justification: 'JUSTIFIED' | 'NOT_JUSTIFIED',
+    requesterRole: string,
+    requesterId: string
+) {
+    // Find the attendance record
+    const attendance = await prisma.attendance.findUnique({
+        where: { id: attendanceId },
+        include: { session: true }
+    });
+    if (!attendance) throw ApiError.notFound('Attendance record not found');
+
+    // Authorization: Admin or session's teacher
+    if (requesterRole !== 'ADMIN') {
+        if (attendance.session.teacherId !== requesterId) {
+            throw ApiError.forbidden('You can only update justification for your own sessions');
+        }
+    }
+
+    // Only allow justification for ABSENT or LATE
+    if (attendance.status === 'PRESENT') {
+        throw ApiError.badRequest('Cannot set justification for PRESENT status');
+    }
+
+    return prisma.attendance.update({
+        where: { id: attendanceId },
+        data: { justification: justification as Justification }
     });
 }

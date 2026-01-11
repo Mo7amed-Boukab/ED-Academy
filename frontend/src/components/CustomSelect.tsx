@@ -13,6 +13,7 @@ interface CustomSelectProps {
   placeholder?: string;
   label?: string;
   className?: string;
+  disabled?: boolean;
 }
 
 export const CustomSelect = ({
@@ -22,6 +23,7 @@ export const CustomSelect = ({
   placeholder = "Select...",
   label,
   className = "",
+  disabled = false,
 }: CustomSelectProps) => {
   const [isOpen, setIsOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -48,7 +50,7 @@ export const CustomSelect = ({
 
   return (
     <div
-      className={`relative max-lg:min-w-0 min-w-[180px] ${className}`}
+      className={`relative max-lg:min-w-0 min-w-[180px] ${className} ${disabled ? 'opacity-60 cursor-not-allowed' : ''}`}
       ref={containerRef}
     >
       {label && (
@@ -58,17 +60,18 @@ export const CustomSelect = ({
       )}
       <button
         type="button"
-        onClick={() => setIsOpen(!isOpen)}
-        className="flex items-center justify-between w-full px-3.5 py-2 bg-white border border-gray-200 rounded-sm cursor-pointer text-sm hover:border-gray-300 h-[38px]"
+        disabled={disabled}
+        onClick={() => !disabled && setIsOpen(!isOpen)}
+        className={`flex items-center justify-between w-full px-3.5 py-2 bg-white border border-gray-200 rounded-sm text-sm h-[38px] custom-select-trigger ${disabled ? 'cursor-not-allowed bg-gray-50' : 'cursor-pointer hover:border-gray-300'
+          }`}
       >
         <span className={!value ? "text-gray-400" : "text-gray-800"}>
           {selectedLabel}
         </span>
         <ChevronDown
           size={14}
-          className={`text-gray-400 transition-transform duration-150 flex-shrink-0 ${
-            isOpen ? "rotate-180" : ""
-          }`}
+          className={`text-gray-400 transition-transform duration-150 flex-shrink-0 ${isOpen ? "rotate-180" : ""
+            }`}
         />
       </button>
 
@@ -87,11 +90,10 @@ export const CustomSelect = ({
                   onChange(option.value);
                   setIsOpen(false);
                 }}
-                className={`w-full text-left flex items-center justify-between px-3.5 py-2.5 text-sm cursor-pointer hover:bg-gray-50 ${
-                  value === option.value
-                    ? "bg-gray-100 text-[#c41e3a]"
-                    : "text-gray-800"
-                }`}
+                className={`w-full text-left flex items-center justify-between px-3.5 py-2.5 text-sm cursor-pointer hover:bg-gray-50 ${value === option.value
+                  ? "bg-gray-100 text-[#c41e3a]"
+                  : "text-gray-800"
+                  }`}
               >
                 <span>{option.label}</span>
                 {value === option.value && (
