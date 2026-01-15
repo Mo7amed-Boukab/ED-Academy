@@ -824,6 +824,7 @@ body {
 .status-badge {
   display: inline-flex;
   align-items: center;
+  gap: 6px;
   padding: 4px 10px;
   font-size: 12px;
   font-weight: 500;

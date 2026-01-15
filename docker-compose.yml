@@ -1,0 +1,56 @@
+# EdAcademy Docker Compose
+# ========================
+# Démarrer: docker-compose up -d --build
+# Avec seed: SEED_DB=true docker-compose up -d --build
+
+services:
+  postgres:
+    image: postgres:15-alpine
+    container_name: edAcademy-db
+    environment:
+      POSTGRES_USER: ${DB_USER:-postgres}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-postgres}
+      POSTGRES_DB: ${DB_NAME:-edacademy}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: edAcademy-backend
+    environment:
+      DATABASE_URL: postgres://${DB_USER:-postgres}:${DB_PASSWORD:-postgres}@postgres:5432/${DB_NAME:-edacademy}
+      JWT_SECRET: ${JWT_SECRET:-change-me-in-production}
+      NODE_ENV: production
+      SEED_DB: ${SEED_DB:-false}
+    ports:
+      - "3000:3000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    # Commande de démarrage : Migrations -> (Seed options) -> Start
+    # Utilisation de npx prisma pour s'assurer d'utiliser le binaire local
+    command: sh -c "npx prisma migrate deploy && if [ \"$$SEED_DB\" = \"true\" ]; then npm run seed:prod; fi && node dist/server.js"
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        VITE_API_URL: ${VITE_API_URL:-http://localhost:3000/api}
+    container_name: edAcademy-frontend
+    ports:
+      - "80:80"
+    depends_on:
+      - backend
+
+volumes:
+  postgres_data:

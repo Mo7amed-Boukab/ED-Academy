@@ -1,7 +1,10 @@
 import { useState, useEffect } from "react";
 import { Check, X, Clock, Search, Loader2 } from "lucide-react";
 import { CustomSelect } from "../../../../components/CustomSelect";
-import { attendanceService, type AttendanceSession, type AttendanceStudent } from "../../services/attendanceService";
+import {
+  attendanceService,
+  type AttendanceSession,
+} from "../../services/attendanceService";
 import { useToast } from "../../../../hooks/useToast";
 
 // Use types from service but we can extend or alias if needed for local state
@@ -46,12 +49,11 @@ export const TeacherAttendance = () => {
     try {
       // Call API
       await attendanceService.markAttendance(sessionId, [
-        { studentId, status }
+        { studentId, status },
       ]);
 
       // Refresh data to get the new attendanceId and ensure sync
       fetchData();
-
     } catch (error) {
       console.error("Error updating status:", error);
       toast.error("Failed to update status");
@@ -75,7 +77,9 @@ export const TeacherAttendance = () => {
             return {
               ...session,
               students: session.students.map((student) =>
-                student.id === studentId ? { ...student, justification } : student
+                student.id === studentId
+                  ? { ...student, justification }
+                  : student
               ),
             };
           }
@@ -86,10 +90,13 @@ export const TeacherAttendance = () => {
       // API call to save justification
       // We need mapping to uppercase for backend if service doesn't handle it
       // The service expects "JUSTIFIED" | "NOT_JUSTIFIED"
-      const backendJustification = justification === "justified" ? "JUSTIFIED" : "NOT_JUSTIFIED";
+      const backendJustification =
+        justification === "justified" ? "JUSTIFIED" : "NOT_JUSTIFIED";
 
-      await attendanceService.updateJustification(attendanceId, backendJustification);
-
+      await attendanceService.updateJustification(
+        attendanceId,
+        backendJustification
+      );
     } catch (error) {
       console.error("Error updating justification:", error);
       toast.error("Failed to update justification");
@@ -328,10 +335,11 @@ export const TeacherAttendance = () => {
                                   "PRESENT"
                                 )
                               }
-                              className={`status-btn ${student.status === "PRESENT"
-                                ? "present"
-                                : "inactive"
-                                }`}
+                              className={`status-btn ${
+                                student.status === "PRESENT"
+                                  ? "present"
+                                  : "inactive"
+                              }`}
                             >
                               <Check size={12} />P
                             </button>
@@ -343,10 +351,11 @@ export const TeacherAttendance = () => {
                                   "ABSENT"
                                 )
                               }
-                              className={`status-btn ${student.status === "ABSENT"
-                                ? "absent"
-                                : "inactive"
-                                }`}
+                              className={`status-btn ${
+                                student.status === "ABSENT"
+                                  ? "absent"
+                                  : "inactive"
+                              }`}
                             >
                               <X size={12} />A
                             </button>
@@ -358,8 +367,9 @@ export const TeacherAttendance = () => {
                                   "LATE"
                                 )
                               }
-                              className={`status-btn ${student.status === "LATE" ? "late" : "inactive"
-                                }`}
+                              className={`status-btn ${
+                                student.status === "LATE" ? "late" : "inactive"
+                              }`}
                             >
                               <Clock size={12} />L
                             </button>
@@ -375,12 +385,13 @@ export const TeacherAttendance = () => {
                           ) : (
                             <div
                               style={{ minWidth: "120px" }}
-                              className={`justification-select ${student.justification === "justified"
-                                ? "justified"
-                                : student.justification === "not_justified"
+                              className={`justification-select ${
+                                student.justification === "justified"
+                                  ? "justified"
+                                  : student.justification === "not_justified"
                                   ? "not-justified"
                                   : ""
-                                }`}
+                              }`}
                             >
                               <CustomSelect
                                 value={student.justification || ""}
